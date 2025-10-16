@@ -35,6 +35,12 @@ To match the real-time voice coding and automation capabilities of Wispr Flow wh
 - **Messaging Bus:** Introduce an event stream (e.g., AWS Kinesis or Google Pub/Sub) to decouple audio ingestion from downstream LLM formatting and vision processing.
 - **Monitoring:** Track latency for audio segments, transcript accuracy, Lens confidence scores, and per-user personalization success.
 
+## Frontend Reference Implementation
+- **Voice Capture Console:** `src/components/VoiceCaptureConsole.jsx` streams microphone audio via the MediaRecorder API, surfaces live on-device transcripts, and forwards the final blob to the configured Wispr Flow endpoint for structured notes and automations.
+- **Lens Insights Panel:** `src/components/VisionInsightsPanel.jsx` uploads site imagery to Google Vision APIs (configurable with `VITE_GOOGLE_VISION_API_KEY`) and renders labels, localized objects, OCR text, and safety scores.
+- **Multimodal Timeline:** `src/components/VoiceVisionTimeline.jsx` stitches voice segments and Lens findings into a unified chronological feed so operators can review AI summaries before syncing to CRM and task modules.
+- **Voice + Vision Page:** `src/pages/VoiceVision.jsx` combines the console, panel, and timeline into a Wispr Flow-inspired command center accessible at `/voice-vision`.
+
 ## Implementation Roadmap
 1. **Prototype Stage:** Wire WebRTC audio streaming to an existing ASR API and display live captions inside Worksie’s job detail page.
 2. **Lens Integration:** Add an optional “Analyze with Lens” button on uploaded images to surface detected objects and text alongside the transcript timeline.
