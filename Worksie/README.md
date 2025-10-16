@@ -34,6 +34,7 @@ scripts/
 - Firebase Hosting + Firestore
 - Stripe API, Claude + GPT agents
 - Replit for frontend & compute
+- Voice + vision roadmap for Wispr Flow-style transcription and Google Lens intelligence (see [`docs/voice_vision_stack.md`](docs/voice_vision_stack.md))
 
 ## 🧠 Claude Agent Prompts
 Stored in `/prompts`:
