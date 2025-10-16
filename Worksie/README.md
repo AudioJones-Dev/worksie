@@ -34,6 +34,8 @@ scripts/
 - Firebase Hosting + Firestore
 - Stripe API, Claude + GPT agents
 - Replit for frontend & compute
+- Voice + vision roadmap for Wispr Flow-style transcription and Google Lens intelligence (see [`docs/voice_vision_stack.md`](docs/voice_vision_stack.md))
+- Voice + Vision console UI at [`/voice-vision`](src/pages/VoiceVision.jsx) wiring the Wispr Flow and Google Lens integrations together
 
 ## 🧠 Claude Agent Prompts
 Stored in `/prompts`:
@@ -114,3 +116,11 @@ You can import this configuration into your Firebase project using the Firebase 
 The application is already set up to fetch and use the Remote Config values. The main logic is in `src/logic/remoteConfig.js`.
 
 The `PromoBanner` component and the primary color are currently controlled by Remote Config. You can extend this to other parts of the application as needed.
+
+## 🎙️🔍 Voice + Vision Configuration
+
+To enable the Wispr Flow and Google Lens integrations used by the Voice + Vision console:
+
+- Add `VITE_WISPR_FLOW_TRANSCRIBE_URL` (and optional `VITE_WISPR_FLOW_API_KEY`) to point at your Wispr Flow-compatible transcription endpoint. The Voice Capture Console streams microphone audio and posts the final WebM blob to this URL.
+- Add `VITE_GOOGLE_VISION_API_KEY` so the Lens Insights Panel can call `images:annotate` on Google Cloud Vision.
+- Navigate to `/voice-vision` in the app to access the combined console, Lens panel, and multimodal timeline.
