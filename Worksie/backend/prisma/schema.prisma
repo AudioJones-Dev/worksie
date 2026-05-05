@@ -425,12 +425,14 @@ model Dispute {
 model Batch {
   id             String       @id @default(cuid())
   organizationId String
-  batchCode      String       @unique
+  batchCode      String
   weekStart      DateTime
   weekEnd        DateTime
   createdAt      DateTime     @default(now())
   organization   Organization @relation(fields: [organizationId], references: [id])
   payouts        Payout[]
+
+  @@unique([organizationId, batchCode])
 }
 
 model AuditLog {
