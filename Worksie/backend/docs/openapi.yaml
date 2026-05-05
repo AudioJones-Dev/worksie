@@ -1,0 +1,1547 @@
+openapi: 3.1.0
+info:
+  title: Worksie MVP API
+  version: 0.1.0
+  summary: Contract for milestone-based field operations, QA approval, progress invoicing, and contractor payouts.
+  description: |
+    This API contract maps the Worksie v1.0 product spec to backend endpoints for the MVP phases:
+    foundation data, job templates, milestone submissions, QA review, earned-value invoicing, and payout summaries.
+servers:
+  - url: http://localhost:4000
+    description: Local development
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+  - name: Organizations
+  - name: Master Data
+  - name: Templates
+  - name: Jobs
+  - name: Field Submissions
+  - name: QA
+  - name: Invoices
+  - name: Payouts
+  - name: Deductions
+  - name: Disputes
+  - name: Batches
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Start an authenticated session.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated user and bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: End the current authenticated session.
+      responses:
+        '204':
+          description: Logged out.
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Return the current user profile and role.
+      responses:
+        '200':
+          description: Current user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /orgs:
+    post:
+      tags: [Organizations]
+      summary: Create an organization.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrganizationRequest'
+      responses:
+        '201':
+          description: Created organization.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+  /orgs/{orgId}/users:
+    get:
+      tags: [Organizations]
+      summary: List organization users.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      responses:
+        '200':
+          description: Organization users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    post:
+      tags: [Organizations]
+      summary: Invite or create an organization user.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Created user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /orgs/{orgId}/users/{userId}/role:
+    patch:
+      tags: [Organizations]
+      summary: Update a user role.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  $ref: '#/components/schemas/UserRole'
+      responses:
+        '200':
+          description: Updated user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /orgs/{orgId}/clients:
+    get:
+      tags: [Master Data]
+      summary: List clients.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      responses:
+        '200':
+          description: Clients.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Client'
+    post:
+      tags: [Master Data]
+      summary: Create a client.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateClientRequest'
+      responses:
+        '201':
+          description: Created client.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Client'
+  /orgs/{orgId}/sites:
+    get:
+      tags: [Master Data]
+      summary: List job sites.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      responses:
+        '200':
+          description: Sites.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Site'
+    post:
+      tags: [Master Data]
+      summary: Create a site.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSiteRequest'
+      responses:
+        '201':
+          description: Created site.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Site'
+  /orgs/{orgId}/contractors:
+    get:
+      tags: [Master Data]
+      summary: List contractors.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      responses:
+        '200':
+          description: Contractors.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Contractor'
+    post:
+      tags: [Master Data]
+      summary: Create a contractor.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContractorRequest'
+      responses:
+        '201':
+          description: Created contractor.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Contractor'
+  /orgs/{orgId}/templates:
+    get:
+      tags: [Templates]
+      summary: List job templates.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      responses:
+        '200':
+          description: Job templates.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JobTemplate'
+    post:
+      tags: [Templates]
+      summary: Create a job template.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJobTemplateRequest'
+      responses:
+        '201':
+          description: Created template.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobTemplate'
+  /templates/{templateId}:
+    get:
+      tags: [Templates]
+      summary: Fetch a job template with milestones.
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+      responses:
+        '200':
+          description: Job template detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobTemplateDetail'
+  /templates/{templateId}/milestones:
+    post:
+      tags: [Templates]
+      summary: Add a milestone to a job template.
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTemplateMilestoneRequest'
+      responses:
+        '201':
+          description: Created template milestone.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateMilestone'
+  /templates/{templateId}/milestones/{milestoneId}:
+    patch:
+      tags: [Templates]
+      summary: Update a template milestone.
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+        - $ref: '#/components/parameters/MilestoneId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTemplateMilestoneRequest'
+      responses:
+        '200':
+          description: Updated template milestone.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateMilestone'
+  /orgs/{orgId}/jobs:
+    get:
+      tags: [Jobs]
+      summary: List jobs.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      responses:
+        '200':
+          description: Jobs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Job'
+    post:
+      tags: [Jobs]
+      summary: Create a job from a template and materialize its milestones.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJobRequest'
+      responses:
+        '201':
+          description: Created job with generated milestones.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobDetail'
+  /jobs/{jobId}:
+    get:
+      tags: [Jobs]
+      summary: Fetch job detail.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Job detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobDetail'
+  /jobs/{jobId}/status:
+    patch:
+      tags: [Jobs]
+      summary: Update job status.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: '#/components/schemas/JobStatus'
+      responses:
+        '200':
+          description: Updated job.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+  /jobs/{jobId}/milestones:
+    get:
+      tags: [Jobs]
+      summary: List materialized milestones for a job.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Job milestones.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JobMilestone'
+  /jobs/{jobId}/milestones/{milestoneId}:
+    patch:
+      tags: [Jobs]
+      summary: Update a job milestone.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+        - $ref: '#/components/parameters/MilestoneId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateJobMilestoneRequest'
+      responses:
+        '200':
+          description: Updated job milestone.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobMilestone'
+  /jobs/{jobId}/milestones/{milestoneId}/assignments:
+    post:
+      tags: [Jobs]
+      summary: Assign a contractor to a job milestone with a payout split.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+        - $ref: '#/components/parameters/MilestoneId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMilestoneAssignmentRequest'
+      responses:
+        '201':
+          description: Created milestone assignment.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MilestoneAssignment'
+  /jobs/{jobId}/milestones/{milestoneId}/submissions:
+    post:
+      tags: [Field Submissions]
+      summary: Submit field proof for a milestone.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+        - $ref: '#/components/parameters/MilestoneId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFieldSubmissionRequest'
+      responses:
+        '201':
+          description: Created field submission.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FieldSubmission'
+  /submissions/{submissionId}/media/presign:
+    post:
+      tags: [Field Submissions]
+      summary: Create a signed upload target for proof media.
+      parameters:
+        - $ref: '#/components/parameters/SubmissionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMediaPresignRequest'
+      responses:
+        '200':
+          description: Signed media upload details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaPresignResponse'
+  /submissions/{submissionId}/media/attach:
+    post:
+      tags: [Field Submissions]
+      summary: Attach uploaded proof media to a field submission.
+      parameters:
+        - $ref: '#/components/parameters/SubmissionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AttachMediaRequest'
+      responses:
+        '201':
+          description: Attached media record.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmissionMedia'
+  /jobs/{jobId}/submissions:
+    get:
+      tags: [Field Submissions]
+      summary: List field submissions for a job.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Field submissions.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FieldSubmission'
+  /submissions/{submissionId}:
+    get:
+      tags: [Field Submissions]
+      summary: Fetch field submission detail.
+      parameters:
+        - $ref: '#/components/parameters/SubmissionId'
+      responses:
+        '200':
+          description: Field submission detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FieldSubmission'
+  /qa/queue:
+    get:
+      tags: [QA]
+      summary: List submissions and milestones pending QA review.
+      parameters:
+        - name: orgId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/MilestoneStatus'
+      responses:
+        '200':
+          description: QA queue rows.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QAQueueItem'
+  /qa/reviews:
+    post:
+      tags: [QA]
+      summary: Create a QA review decision.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQAReviewRequest'
+      responses:
+        '201':
+          description: Created QA review.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QAReview'
+  /qa/reviews/{reviewId}/approve:
+    post:
+      tags: [QA]
+      summary: Approve submitted milestone work and convert it to earned value.
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QACompletionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/QAReviewResponse'
+  /qa/reviews/{reviewId}/reject:
+    post:
+      tags: [QA]
+      summary: Reject submitted milestone work.
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      responses:
+        '200':
+          $ref: '#/components/responses/QAReviewResponse'
+  /qa/reviews/{reviewId}/partial-billable:
+    post:
+      tags: [QA]
+      summary: Mark a milestone as partially completed and billable.
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QACompletionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/QAReviewResponse'
+  /qa/reviews/{reviewId}/partial-non-billable:
+    post:
+      tags: [QA]
+      summary: Mark a partial milestone as not usable and not billable.
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      responses:
+        '200':
+          $ref: '#/components/responses/QAReviewResponse'
+  /qa/reviews/{reviewId}/request-proof:
+    post:
+      tags: [QA]
+      summary: Request more required proof from the contractor.
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      responses:
+        '200':
+          $ref: '#/components/responses/QAReviewResponse'
+  /qa/reviews/{reviewId}/reassign:
+    post:
+      tags: [QA]
+      summary: Reassign milestone ownership after a handoff or incomplete work.
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReassignMilestoneRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/QAReviewResponse'
+  /qa/reviews/{reviewId}/apply-deduction:
+    post:
+      tags: [QA]
+      summary: Apply a rework or quality deduction during QA review.
+      parameters:
+        - $ref: '#/components/parameters/ReviewId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDeductionRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/QAReviewResponse'
+  /jobs/{jobId}/invoices/generate-progress:
+    post:
+      tags: [Invoices]
+      summary: Generate a progress invoice from approved earned milestone value.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '201':
+          description: Generated progress invoice.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+  /jobs/{jobId}/invoices/generate-full:
+    post:
+      tags: [Invoices]
+      summary: Generate a final full invoice when all required milestones are approved.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '201':
+          description: Generated full invoice.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+  /jobs/{jobId}/invoices:
+    get:
+      tags: [Invoices]
+      summary: List invoices for a job.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Job invoices.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invoice'
+  /invoices/{invoiceId}:
+    get:
+      tags: [Invoices]
+      summary: Fetch invoice detail.
+      parameters:
+        - $ref: '#/components/parameters/InvoiceId'
+      responses:
+        '200':
+          description: Invoice detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+  /invoices/{invoiceId}/status:
+    patch:
+      tags: [Invoices]
+      summary: Update invoice status.
+      parameters:
+        - $ref: '#/components/parameters/InvoiceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: '#/components/schemas/InvoiceStatus'
+      responses:
+        '200':
+          description: Updated invoice.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+  /jobs/{jobId}/payouts/recalculate:
+    post:
+      tags: [Payouts]
+      summary: Recalculate contractor payouts from approved milestone attribution.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Recalculated payout summaries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payout'
+  /jobs/{jobId}/payouts:
+    get:
+      tags: [Payouts]
+      summary: List payouts for a job.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Job payouts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payout'
+  /contractors/{contractorId}/payouts:
+    get:
+      tags: [Payouts]
+      summary: List payouts for a contractor.
+      parameters:
+        - $ref: '#/components/parameters/ContractorId'
+      responses:
+        '200':
+          description: Contractor payouts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payout'
+  /jobs/{jobId}/deductions:
+    post:
+      tags: [Deductions]
+      summary: Create a deduction for rework, waste, failed QA, return trip, or admin adjustment.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDeductionRequest'
+      responses:
+        '201':
+          description: Created deduction.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deduction'
+  /jobs/{jobId}/milestones/{milestoneId}/reassign:
+    post:
+      tags: [Jobs]
+      summary: Reassign a milestone and freeze previous contractor credit until admin validation.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+        - $ref: '#/components/parameters/MilestoneId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReassignMilestoneRequest'
+      responses:
+        '200':
+          description: Updated assignments.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MilestoneAssignment'
+  /jobs/{jobId}/disputes:
+    post:
+      tags: [Disputes]
+      summary: Open a dispute and lock only the affected milestone's invoice and payout impact.
+      parameters:
+        - $ref: '#/components/parameters/JobId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDisputeRequest'
+      responses:
+        '201':
+          description: Created dispute.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dispute'
+  /disputes/{disputeId}/resolve:
+    patch:
+      tags: [Disputes]
+      summary: Resolve a dispute with final earned-value or deduction adjustment.
+      parameters:
+        - $ref: '#/components/parameters/DisputeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolveDisputeRequest'
+      responses:
+        '200':
+          description: Resolved dispute.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dispute'
+  /disputes/{disputeId}/lock-impact:
+    post:
+      tags: [Disputes]
+      summary: Lock invoice and payout activity for the affected milestone.
+      parameters:
+        - $ref: '#/components/parameters/DisputeId'
+      responses:
+        '204':
+          description: Milestone financial impact locked.
+  /orgs/{orgId}/batches/generate-weekly:
+    post:
+      tags: [Batches]
+      summary: Generate a weekly billing and payout batch from approved earned values.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateWeeklyBatchRequest'
+      responses:
+        '201':
+          description: Generated weekly batch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Batch'
+  /orgs/{orgId}/batches:
+    get:
+      tags: [Batches]
+      summary: List weekly batches.
+      parameters:
+        - $ref: '#/components/parameters/OrgId'
+      responses:
+        '200':
+          description: Weekly batches.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Batch'
+  /batches/{batchId}:
+    get:
+      tags: [Batches]
+      summary: Fetch a weekly batch with payout rows.
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+      responses:
+        '200':
+          description: Weekly batch detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchDetail'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    QAReviewResponse:
+      description: QA review result.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/QAReview'
+  parameters:
+    OrgId:
+      name: orgId
+      in: path
+      required: true
+      schema:
+        type: string
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+    TemplateId:
+      name: templateId
+      in: path
+      required: true
+      schema:
+        type: string
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      schema:
+        type: string
+    MilestoneId:
+      name: milestoneId
+      in: path
+      required: true
+      schema:
+        type: string
+    SubmissionId:
+      name: submissionId
+      in: path
+      required: true
+      schema:
+        type: string
+    ReviewId:
+      name: reviewId
+      in: path
+      required: true
+      schema:
+        type: string
+    InvoiceId:
+      name: invoiceId
+      in: path
+      required: true
+      schema:
+        type: string
+    ContractorId:
+      name: contractorId
+      in: path
+      required: true
+      schema:
+        type: string
+    DisputeId:
+      name: disputeId
+      in: path
+      required: true
+      schema:
+        type: string
+    BatchId:
+      name: batchId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    UserRole:
+      type: string
+      enum: [OWNER, ADMIN, DISPATCHER, QA_REVIEWER, CONTRACTOR, CLIENT_VIEWER]
+    JobStatus:
+      type: string
+      enum: [NOT_STARTED, SCHEDULED, IN_PROGRESS, PARTIALLY_COMPLETED_BILLABLE, PARTIALLY_COMPLETED_NON_BILLABLE, COMPLETED_PENDING_QA, COMPLETED_APPROVED, REWORK_REQUIRED, REASSIGNED, FAILED, DISPUTED, CLOSED]
+    MilestoneStatus:
+      type: string
+      enum: [NOT_STARTED, IN_PROGRESS, COMPLETED_PENDING_QA, COMPLETED_APPROVED, PARTIAL_BILLABLE, PARTIAL_NON_BILLABLE, REJECTED, REWORK_REQUIRED, REASSIGNED, DISPUTED]
+    InvoiceStatus:
+      type: string
+      enum: [NOT_INVOICED, PARTIAL_INVOICE_READY, INVOICE_READY, READY_FOR_REVIEW, APPROVED, SENT, PAID, HELD, DISPUTED, VOIDED]
+    InvoiceType:
+      type: string
+      enum: [FULL, PARTIAL, PROGRESS, REWORK_ADJUSTED, MULTI_CONTRACTOR, DISPUTED_HOLD, WEEKLY_BATCH, FINAL_CLOSEOUT]
+    PayoutStatus:
+      type: string
+      enum: [NOT_READY, PENDING_REVIEW, APPROVED, BATCHED, PAID, HELD, DEDUCTED, DISPUTED]
+    SubmissionType:
+      type: string
+      enum: [PROGRESS_UPDATE, COMPLETION, REWORK_UPDATE, BLOCKED_UPDATE]
+    QAAction:
+      type: string
+      enum: [APPROVE, REJECT, PARTIAL_BILLABLE, PARTIAL_NON_BILLABLE, REQUEST_MORE_PROOF, APPLY_DEDUCTION, REASSIGN, LOCK_INVOICE, ESCALATE_DISPUTE]
+    MediaType:
+      type: string
+      enum: [PHOTO_BEFORE, PHOTO_PROGRESS, PHOTO_COMPLETION, VOICE_NOTE, DOCUMENT, SIGNATURE]
+    Money:
+      type: string
+      pattern: '^\\d+(\\.\\d{1,2})?$'
+      examples: ['2500.00']
+    Organization:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+    CreateOrganizationRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+    User:
+      type: object
+      required: [id, organizationId, email, fullName, role, isActive]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        email: { type: string, format: email }
+        fullName: { type: string }
+        role:
+          $ref: '#/components/schemas/UserRole'
+        isActive: { type: boolean }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    AuthSession:
+      type: object
+      required: [token, user]
+      properties:
+        token: { type: string }
+        user:
+          $ref: '#/components/schemas/User'
+    CreateUserRequest:
+      type: object
+      required: [email, fullName, role]
+      properties:
+        email: { type: string, format: email }
+        fullName: { type: string }
+        role:
+          $ref: '#/components/schemas/UserRole'
+    Client:
+      type: object
+      required: [id, organizationId, name]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        name: { type: string }
+        externalRef: { type: string, nullable: true }
+    CreateClientRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        externalRef: { type: string }
+    Site:
+      type: object
+      required: [id, organizationId, clientId, name]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        clientId: { type: string }
+        name: { type: string }
+        address1: { type: string }
+        city: { type: string }
+        state: { type: string }
+        postalCode: { type: string }
+        country: { type: string }
+        lat: { type: number }
+        lng: { type: number }
+    CreateSiteRequest:
+      type: object
+      required: [clientId, name]
+      properties:
+        clientId: { type: string }
+        name: { type: string }
+        address1: { type: string }
+        city: { type: string }
+        state: { type: string }
+        postalCode: { type: string }
+        country: { type: string }
+        lat: { type: number }
+        lng: { type: number }
+    Contractor:
+      type: object
+      required: [id, organizationId, displayName, isActive]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        displayName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        isActive: { type: boolean }
+    CreateContractorRequest:
+      type: object
+      required: [displayName]
+      properties:
+        displayName: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+    JobTemplate:
+      type: object
+      required: [id, organizationId, templateCode, name, jobType, billingModel]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        templateCode: { type: string }
+        name: { type: string }
+        jobType: { type: string }
+        billingModel: { type: string, examples: [milestone_based] }
+        requiresPhotoVerification: { type: boolean }
+        requiresQaApproval: { type: boolean }
+        allowsPartialInvoicing: { type: boolean }
+        allowsMultiContractorAssignment: { type: boolean }
+        defaultProrationMethod: { type: string, examples: [milestone] }
+        reworkDeductionsEnabled: { type: boolean }
+        isActive: { type: boolean }
+    JobTemplateDetail:
+      allOf:
+        - $ref: '#/components/schemas/JobTemplate'
+        - type: object
+          properties:
+            milestones:
+              type: array
+              items:
+                $ref: '#/components/schemas/TemplateMilestone'
+    CreateJobTemplateRequest:
+      type: object
+      required: [templateCode, name, jobType]
+      properties:
+        templateCode: { type: string }
+        name: { type: string }
+        jobType: { type: string }
+        billingModel: { type: string, default: milestone_based }
+        requiresPhotoVerification: { type: boolean, default: true }
+        requiresQaApproval: { type: boolean, default: true }
+        allowsPartialInvoicing: { type: boolean, default: true }
+        allowsMultiContractorAssignment: { type: boolean, default: true }
+        defaultProrationMethod: { type: string, default: milestone }
+        reworkDeductionsEnabled: { type: boolean, default: true }
+    TemplateMilestone:
+      type: object
+      required: [id, templateId, code, name, percentValue, sortOrder]
+      properties:
+        id: { type: string }
+        templateId: { type: string }
+        code: { type: string }
+        name: { type: string }
+        description: { type: string }
+        percentValue: { type: number }
+        requiresBeforePhoto: { type: boolean }
+        requiresProgressPhoto: { type: boolean }
+        requiresCompletionPhoto: { type: boolean }
+        requiresVoiceNote: { type: boolean }
+        requiresGps: { type: boolean }
+        sortOrder: { type: integer }
+    CreateTemplateMilestoneRequest:
+      type: object
+      required: [code, name, percentValue, sortOrder]
+      properties:
+        code: { type: string }
+        name: { type: string }
+        description: { type: string }
+        percentValue: { type: number }
+        requiresBeforePhoto: { type: boolean, default: false }
+        requiresProgressPhoto: { type: boolean, default: true }
+        requiresCompletionPhoto: { type: boolean, default: true }
+        requiresVoiceNote: { type: boolean, default: false }
+        requiresGps: { type: boolean, default: true }
+        sortOrder: { type: integer }
+    UpdateTemplateMilestoneRequest:
+      allOf:
+        - $ref: '#/components/schemas/CreateTemplateMilestoneRequest'
+    Job:
+      type: object
+      required: [id, organizationId, templateId, clientId, siteId, jobCode, title, jobTotalValue, status, invoiceStatus]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        templateId: { type: string }
+        clientId: { type: string }
+        siteId: { type: string }
+        jobCode: { type: string }
+        title: { type: string }
+        jobTotalValue:
+          $ref: '#/components/schemas/Money'
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        invoiceStatus:
+          $ref: '#/components/schemas/InvoiceStatus'
+        scheduledDate: { type: string, format: date-time }
+        requiresQa: { type: boolean }
+        allowsPartialInvoicing: { type: boolean }
+    JobDetail:
+      allOf:
+        - $ref: '#/components/schemas/Job'
+        - type: object
+          properties:
+            milestones:
+              type: array
+              items:
+                $ref: '#/components/schemas/JobMilestone'
+    CreateJobRequest:
+      type: object
+      required: [templateId, clientId, siteId, jobCode, title, jobTotalValue]
+      properties:
+        templateId: { type: string }
+        clientId: { type: string }
+        siteId: { type: string }
+        jobCode: { type: string }
+        title: { type: string }
+        jobTotalValue:
+          $ref: '#/components/schemas/Money'
+        scheduledDate: { type: string, format: date-time }
+    JobMilestone:
+      type: object
+      required: [id, jobId, code, name, percentValue, moneyValue, status, verifiedCompletionPercent, qaApproved, earnedValue, deductionValue]
+      properties:
+        id: { type: string }
+        jobId: { type: string }
+        templateMilestoneId: { type: string, nullable: true }
+        code: { type: string }
+        name: { type: string }
+        percentValue: { type: number }
+        moneyValue:
+          $ref: '#/components/schemas/Money'
+        status:
+          $ref: '#/components/schemas/MilestoneStatus'
+        verifiedCompletionPercent: { type: number }
+        qaApproved: { type: boolean }
+        earnedValue:
+          $ref: '#/components/schemas/Money'
+        deductionValue:
+          $ref: '#/components/schemas/Money'
+    UpdateJobMilestoneRequest:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/MilestoneStatus'
+        verifiedCompletionPercent: { type: number }
+        qaApproved: { type: boolean }
+        earnedValue:
+          $ref: '#/components/schemas/Money'
+        deductionValue:
+          $ref: '#/components/schemas/Money'
+    CreateMilestoneAssignmentRequest:
+      type: object
+      required: [contractorId]
+      properties:
+        contractorId: { type: string }
+        splitPercent: { type: number, default: 100 }
+        isPrimary: { type: boolean, default: false }
+    MilestoneAssignment:
+      type: object
+      required: [id, jobMilestoneId, contractorId, splitPercent, isPrimary]
+      properties:
+        id: { type: string }
+        jobMilestoneId: { type: string }
+        contractorId: { type: string }
+        splitPercent: { type: number }
+        isPrimary: { type: boolean }
+    CreateFieldSubmissionRequest:
+      type: object
+      required: [contractorId, submissionType, claimedStatus, claimedCompletionPercent]
+      properties:
+        contractorId: { type: string }
+        submissionType:
+          $ref: '#/components/schemas/SubmissionType'
+        claimedStatus: { type: string, examples: [partial] }
+        claimedCompletionPercent: { type: number }
+        notes: { type: string }
+        readyForQa: { type: boolean, default: false }
+        blockedReason: { type: string }
+        gpsLat: { type: number }
+        gpsLng: { type: number }
+    FieldSubmission:
+      type: object
+      required: [id, jobId, jobMilestoneId, contractorId, submissionType, claimedStatus, claimedCompletionPercent, readyForQa, submittedAt]
+      properties:
+        id: { type: string }
+        jobId: { type: string }
+        jobMilestoneId: { type: string }
+        contractorId: { type: string }
+        submissionType:
+          $ref: '#/components/schemas/SubmissionType'
+        claimedStatus: { type: string }
+        claimedCompletionPercent: { type: number }
+        notes: { type: string }
+        readyForQa: { type: boolean }
+        blockedReason: { type: string }
+        gpsLat: { type: number }
+        gpsLng: { type: number }
+        submittedAt: { type: string, format: date-time }
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubmissionMedia'
+    CreateMediaPresignRequest:
+      type: object
+      required: [mediaType, fileName, contentType]
+      properties:
+        mediaType:
+          $ref: '#/components/schemas/MediaType'
+        fileName: { type: string }
+        contentType: { type: string }
+    MediaPresignResponse:
+      type: object
+      required: [uploadUrl, storageUrl, method]
+      properties:
+        uploadUrl: { type: string, format: uri }
+        storageUrl: { type: string, format: uri }
+        method: { type: string, enum: [PUT, POST] }
+        headers:
+          type: object
+          additionalProperties: { type: string }
+    AttachMediaRequest:
+      type: object
+      required: [mediaType, url]
+      properties:
+        mediaType:
+          $ref: '#/components/schemas/MediaType'
+        url: { type: string, format: uri }
+    SubmissionMedia:
+      type: object
+      required: [id, submissionId, mediaType, url]
+      properties:
+        id: { type: string }
+        submissionId: { type: string }
+        mediaType:
+          $ref: '#/components/schemas/MediaType'
+        url: { type: string, format: uri }
+    QAQueueItem:
+      type: object
+      required: [jobId, jobCode, milestoneId, milestoneCode, milestoneStatus]
+      properties:
+        jobId: { type: string }
+        jobCode: { type: string }
+        milestoneId: { type: string }
+        milestoneCode: { type: string }
+        milestoneName: { type: string }
+        milestoneStatus:
+          $ref: '#/components/schemas/MilestoneStatus'
+        latestSubmission:
+          $ref: '#/components/schemas/FieldSubmission'
+    CreateQAReviewRequest:
+      type: object
+      required: [jobMilestoneId, reviewerUserId, action]
+      properties:
+        jobMilestoneId: { type: string }
+        submissionId: { type: string }
+        reviewerUserId: { type: string }
+        action:
+          $ref: '#/components/schemas/QAAction'
+        approvedCompletionPct: { type: number }
+        approvedEarnedValue:
+          $ref: '#/components/schemas/Money'
+        deductionApplied:
+          $ref: '#/components/schemas/Money'
+        reviewerNotes: { type: string }
+    QACompletionRequest:
+      type: object
+      required: [approvedCompletionPct]
+      properties:
+        approvedCompletionPct: { type: number }
+        approvedEarnedValue:
+          $ref: '#/components/schemas/Money'
+        reviewerNotes: { type: string }
+    QAReview:
+      type: object
+      required: [id, jobMilestoneId, reviewerUserId, action, createdAt]
+      properties:
+        id: { type: string }
+        jobMilestoneId: { type: string }
+        submissionId: { type: string, nullable: true }
+        reviewerUserId: { type: string }
+        action:
+          $ref: '#/components/schemas/QAAction'
+        approvedCompletionPct: { type: number }
+        approvedEarnedValue:
+          $ref: '#/components/schemas/Money'
+        deductionApplied:
+          $ref: '#/components/schemas/Money'
+        reviewerNotes: { type: string }
+        createdAt: { type: string, format: date-time }
+    ReassignMilestoneRequest:
+      type: object
+      required: [assignments]
+      properties:
+        reason: { type: string }
+        freezeOriginalCredit: { type: boolean, default: true }
+        assignments:
+          type: array
+          items:
+            $ref: '#/components/schemas/CreateMilestoneAssignmentRequest'
+    Invoice:
+      type: object
+      required: [id, jobId, clientId, invoiceType, status, grossAmount, deductions, netAmount]
+      properties:
+        id: { type: string }
+        jobId: { type: string }
+        clientId: { type: string }
+        invoiceNumber: { type: string }
+        invoiceType:
+          $ref: '#/components/schemas/InvoiceType'
+        status:
+          $ref: '#/components/schemas/InvoiceStatus'
+        grossAmount:
+          $ref: '#/components/schemas/Money'
+        deductions:
+          $ref: '#/components/schemas/Money'
+        netAmount:
+          $ref: '#/components/schemas/Money'
+        issuedAt: { type: string, format: date-time }
+        lineItems:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceLineItem'
+    InvoiceLineItem:
+      type: object
+      required: [id, invoiceId, description, amount]
+      properties:
+        id: { type: string }
+        invoiceId: { type: string }
+        jobMilestoneId: { type: string, nullable: true }
+        description: { type: string }
+        amount:
+          $ref: '#/components/schemas/Money'
+    Payout:
+      type: object
+      required: [id, contractorId, jobId, grossEarned, deductions, netPayout, status]
+      properties:
+        id: { type: string }
+        contractorId: { type: string }
+        jobId: { type: string }
+        batchId: { type: string, nullable: true }
+        grossEarned:
+          $ref: '#/components/schemas/Money'
+        deductions:
+          $ref: '#/components/schemas/Money'
+        netPayout:
+          $ref: '#/components/schemas/Money'
+        status:
+          $ref: '#/components/schemas/PayoutStatus'
+    CreateDeductionRequest:
+      type: object
+      required: [reasonCode, amount]
+      properties:
+        jobMilestoneId: { type: string }
+        contractorId: { type: string }
+        reasonCode: { type: string, examples: [FAILED_QA_DEDUCTION] }
+        amount:
+          $ref: '#/components/schemas/Money'
+        notes: { type: string }
+    Deduction:
+      type: object
+      required: [id, jobId, reasonCode, amount]
+      properties:
+        id: { type: string }
+        jobId: { type: string }
+        jobMilestoneId: { type: string, nullable: true }
+        contractorId: { type: string, nullable: true }
+        reasonCode: { type: string }
+        amount:
+          $ref: '#/components/schemas/Money'
+        notes: { type: string }
+    CreateDisputeRequest:
+      type: object
+      required: [jobMilestoneId, reason]
+      properties:
+        jobMilestoneId: { type: string }
+        contractorId: { type: string }
+        reason: { type: string }
+        evidence: { type: string }
+    ResolveDisputeRequest:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string }
+        finalAdjustment:
+          $ref: '#/components/schemas/Money'
+    Dispute:
+      type: object
+      required: [id, jobId, jobMilestoneId, reason]
+      properties:
+        id: { type: string }
+        jobId: { type: string }
+        jobMilestoneId: { type: string }
+        contractorId: { type: string, nullable: true }
+        reason: { type: string }
+        evidence: { type: string }
+        decision: { type: string }
+        finalAdjustment:
+          $ref: '#/components/schemas/Money'
+        resolvedAt: { type: string, format: date-time }
+    GenerateWeeklyBatchRequest:
+      type: object
+      required: [weekStart, weekEnd]
+      properties:
+        weekStart: { type: string, format: date-time }
+        weekEnd: { type: string, format: date-time }
+    Batch:
+      type: object
+      required: [id, organizationId, batchCode, weekStart, weekEnd]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        batchCode: { type: string }
+        weekStart: { type: string, format: date-time }
+        weekEnd: { type: string, format: date-time }
+    BatchDetail:
+      allOf:
+        - $ref: '#/components/schemas/Batch'
+        - type: object
+          properties:
+            payouts:
+              type: array
+              items:
+                $ref: '#/components/schemas/Payout'
