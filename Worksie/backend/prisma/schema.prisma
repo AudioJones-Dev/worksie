@@ -1,0 +1,457 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  DISPATCHER
+  QA_REVIEWER
+  CONTRACTOR
+  CLIENT_VIEWER
+}
+
+enum JobStatus {
+  NOT_STARTED
+  SCHEDULED
+  IN_PROGRESS
+  PARTIALLY_COMPLETED_BILLABLE
+  PARTIALLY_COMPLETED_NON_BILLABLE
+  COMPLETED_PENDING_QA
+  COMPLETED_APPROVED
+  REWORK_REQUIRED
+  REASSIGNED
+  FAILED
+  DISPUTED
+  CLOSED
+}
+
+enum MilestoneStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED_PENDING_QA
+  COMPLETED_APPROVED
+  PARTIAL_BILLABLE
+  PARTIAL_NON_BILLABLE
+  REJECTED
+  REWORK_REQUIRED
+  REASSIGNED
+  DISPUTED
+}
+
+enum InvoiceStatus {
+  NOT_INVOICED
+  PARTIAL_INVOICE_READY
+  INVOICE_READY
+  READY_FOR_REVIEW
+  APPROVED
+  SENT
+  PAID
+  HELD
+  DISPUTED
+  VOIDED
+}
+
+enum InvoiceType {
+  FULL
+  PARTIAL
+  PROGRESS
+  REWORK_ADJUSTED
+  MULTI_CONTRACTOR
+  DISPUTED_HOLD
+  WEEKLY_BATCH
+  FINAL_CLOSEOUT
+}
+
+enum PayoutStatus {
+  NOT_READY
+  PENDING_REVIEW
+  APPROVED
+  BATCHED
+  PAID
+  HELD
+  DEDUCTED
+  DISPUTED
+}
+
+enum SubmissionType {
+  PROGRESS_UPDATE
+  COMPLETION
+  REWORK_UPDATE
+  BLOCKED_UPDATE
+}
+
+enum QAAction {
+  APPROVE
+  REJECT
+  PARTIAL_BILLABLE
+  PARTIAL_NON_BILLABLE
+  REQUEST_MORE_PROOF
+  APPLY_DEDUCTION
+  REASSIGN
+  LOCK_INVOICE
+  ESCALATE_DISPUTE
+}
+
+enum MediaType {
+  PHOTO_BEFORE
+  PHOTO_PROGRESS
+  PHOTO_COMPLETION
+  VOICE_NOTE
+  DOCUMENT
+  SIGNATURE
+}
+
+model Organization {
+  id          String       @id @default(cuid())
+  name        String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  auditLogs   AuditLog[]
+  batches     Batch[]
+  clients     Client[]
+  contractors Contractor[]
+  jobs        Job[]
+  sites       Site[]
+  templates   JobTemplate[]
+  users       User[]
+}
+
+model User {
+  id             String      @id @default(cuid())
+  organizationId String
+  email          String      @unique
+  fullName       String
+  role           UserRole
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  auditLogs      AuditLog[]
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  qaReviews      QAReview[]  @relation("QAReviewer")
+}
+
+model Client {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  externalRef    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  invoices       Invoice[]
+  jobs           Job[]
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  sites          Site[]
+}
+
+model Site {
+  id             String       @id @default(cuid())
+  organizationId String
+  clientId       String
+  name           String
+  address1       String?
+  city           String?
+  state          String?
+  postalCode     String?
+  country        String?
+  lat            Float?
+  lng            Float?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  client         Client       @relation(fields: [clientId], references: [id])
+  jobs           Job[]
+  organization   Organization @relation(fields: [organizationId], references: [id])
+}
+
+model Contractor {
+  id             String                @id @default(cuid())
+  organizationId String
+  displayName    String
+  email          String?
+  phone          String?
+  isActive       Boolean               @default(true)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  assignments    MilestoneAssignment[]
+  deductions     Deduction[]
+  disputes       Dispute[]
+  organization   Organization          @relation(fields: [organizationId], references: [id])
+  payouts        Payout[]
+  submissions    FieldSubmission[]
+}
+
+model JobTemplate {
+  id                              String              @id @default(cuid())
+  organizationId                  String
+  templateCode                    String
+  name                            String
+  jobType                         String
+  billingModel                    String              @default("milestone_based")
+  requiresPhotoVerification       Boolean             @default(true)
+  requiresQaApproval              Boolean             @default(true)
+  allowsPartialInvoicing          Boolean             @default(true)
+  allowsMultiContractorAssignment Boolean             @default(true)
+  defaultProrationMethod          String              @default("milestone")
+  reworkDeductionsEnabled         Boolean             @default(true)
+  isActive                        Boolean             @default(true)
+  createdAt                       DateTime            @default(now())
+  updatedAt                       DateTime            @updatedAt
+  jobs                            Job[]
+  milestones                      TemplateMilestone[]
+  organization                    Organization        @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, templateCode])
+}
+
+model TemplateMilestone {
+  id                      String         @id @default(cuid())
+  templateId              String
+  code                    String
+  name                    String
+  description             String?
+  percentValue            Float
+  requiresBeforePhoto     Boolean        @default(false)
+  requiresProgressPhoto   Boolean        @default(true)
+  requiresCompletionPhoto Boolean        @default(true)
+  requiresVoiceNote       Boolean        @default(false)
+  requiresGps             Boolean        @default(true)
+  sortOrder               Int
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  jobMilestones           JobMilestone[]
+  template                JobTemplate    @relation(fields: [templateId], references: [id])
+
+  @@unique([templateId, code])
+}
+
+model Job {
+  id                     String            @id @default(cuid())
+  organizationId         String
+  templateId             String
+  clientId               String
+  siteId                 String
+  jobCode                String
+  title                  String
+  jobTotalValue          Decimal           @db.Decimal(12, 2)
+  status                 JobStatus         @default(NOT_STARTED)
+  invoiceStatus          InvoiceStatus     @default(NOT_INVOICED)
+  scheduledDate          DateTime?
+  requiresQa             Boolean           @default(true)
+  allowsPartialInvoicing Boolean           @default(true)
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  auditLogs              AuditLog[]
+  client                 Client            @relation(fields: [clientId], references: [id])
+  deductions             Deduction[]
+  disputes               Dispute[]
+  invoices               Invoice[]
+  milestones             JobMilestone[]
+  organization           Organization      @relation(fields: [organizationId], references: [id])
+  payouts                Payout[]
+  site                   Site              @relation(fields: [siteId], references: [id])
+  submissions            FieldSubmission[]
+  template               JobTemplate       @relation(fields: [templateId], references: [id])
+
+  @@unique([organizationId, jobCode])
+}
+
+model JobMilestone {
+  id                       String                @id @default(cuid())
+  jobId                    String
+  templateMilestoneId      String?
+  code                     String
+  name                     String
+  percentValue             Float
+  moneyValue               Decimal               @db.Decimal(12, 2)
+  status                   MilestoneStatus       @default(NOT_STARTED)
+  verifiedCompletionPercent Float                @default(0)
+  qaApproved               Boolean               @default(false)
+  earnedValue              Decimal               @default(0) @db.Decimal(12, 2)
+  deductionValue           Decimal               @default(0) @db.Decimal(12, 2)
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
+  assignments              MilestoneAssignment[]
+  deductions               Deduction[]
+  disputes                 Dispute[]
+  invoiceLineItems         InvoiceLineItem[]
+  job                      Job                   @relation(fields: [jobId], references: [id])
+  qaReviews                QAReview[]
+  submissions              FieldSubmission[]
+  templateMilestone        TemplateMilestone?     @relation(fields: [templateMilestoneId], references: [id])
+
+  @@unique([jobId, code])
+}
+
+model MilestoneAssignment {
+  id             String       @id @default(cuid())
+  jobMilestoneId String
+  contractorId   String
+  splitPercent   Float        @default(100)
+  isPrimary      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  contractor     Contractor   @relation(fields: [contractorId], references: [id])
+  jobMilestone   JobMilestone @relation(fields: [jobMilestoneId], references: [id])
+
+  @@unique([jobMilestoneId, contractorId])
+}
+
+model FieldSubmission {
+  id                       String            @id @default(cuid())
+  jobId                    String
+  jobMilestoneId           String
+  contractorId             String
+  submissionType           SubmissionType
+  claimedStatus            String
+  claimedCompletionPercent Float
+  notes                    String?
+  readyForQa               Boolean           @default(false)
+  blockedReason            String?
+  gpsLat                   Float?
+  gpsLng                   Float?
+  submittedAt              DateTime          @default(now())
+  auditLogs                AuditLog[]
+  contractor               Contractor        @relation(fields: [contractorId], references: [id])
+  job                      Job               @relation(fields: [jobId], references: [id])
+  media                    SubmissionMedia[]
+  milestone                JobMilestone      @relation(fields: [jobMilestoneId], references: [id])
+  qaReviews                QAReview[]
+}
+
+model SubmissionMedia {
+  id           String          @id @default(cuid())
+  submissionId String
+  mediaType    MediaType
+  url          String
+  createdAt    DateTime        @default(now())
+  submission   FieldSubmission @relation(fields: [submissionId], references: [id])
+}
+
+model QAReview {
+  id                    String           @id @default(cuid())
+  jobMilestoneId        String
+  submissionId          String?
+  reviewerUserId        String
+  action                QAAction
+  approvedCompletionPct Float?
+  approvedEarnedValue   Decimal?         @db.Decimal(12, 2)
+  deductionApplied      Decimal?         @db.Decimal(12, 2)
+  reviewerNotes         String?
+  createdAt             DateTime         @default(now())
+  milestone             JobMilestone     @relation(fields: [jobMilestoneId], references: [id])
+  reviewer              User             @relation("QAReviewer", fields: [reviewerUserId], references: [id])
+  submission            FieldSubmission? @relation(fields: [submissionId], references: [id])
+}
+
+model Invoice {
+  id            String            @id @default(cuid())
+  jobId         String
+  clientId      String
+  batchId       String?
+  invoiceNumber String?
+  invoiceType   InvoiceType
+  status        InvoiceStatus     @default(READY_FOR_REVIEW)
+  grossAmount   Decimal           @db.Decimal(12, 2)
+  deductions    Decimal           @default(0) @db.Decimal(12, 2)
+  netAmount     Decimal           @db.Decimal(12, 2)
+  issuedAt      DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  batch         Batch?            @relation(fields: [batchId], references: [id])
+  client        Client            @relation(fields: [clientId], references: [id])
+  job           Job               @relation(fields: [jobId], references: [id])
+  lineItems     InvoiceLineItem[]
+}
+
+model InvoiceLineItem {
+  id             String        @id @default(cuid())
+  invoiceId      String
+  jobMilestoneId String?
+  description    String
+  amount         Decimal       @db.Decimal(12, 2)
+  invoice        Invoice       @relation(fields: [invoiceId], references: [id])
+  milestone      JobMilestone? @relation(fields: [jobMilestoneId], references: [id])
+}
+
+model Payout {
+  id           String       @id @default(cuid())
+  contractorId String
+  jobId        String
+  batchId      String?
+  grossEarned  Decimal      @db.Decimal(12, 2)
+  deductions   Decimal      @default(0) @db.Decimal(12, 2)
+  netPayout    Decimal      @db.Decimal(12, 2)
+  status       PayoutStatus @default(PENDING_REVIEW)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  batch        Batch?       @relation(fields: [batchId], references: [id])
+  contractor   Contractor   @relation(fields: [contractorId], references: [id])
+  job          Job          @relation(fields: [jobId], references: [id])
+}
+
+model Deduction {
+  id             String        @id @default(cuid())
+  jobId          String
+  jobMilestoneId String?
+  contractorId   String?
+  reasonCode     String
+  amount         Decimal       @db.Decimal(12, 2)
+  notes          String?
+  createdAt      DateTime      @default(now())
+  contractor     Contractor?   @relation(fields: [contractorId], references: [id])
+  job            Job           @relation(fields: [jobId], references: [id])
+  milestone      JobMilestone? @relation(fields: [jobMilestoneId], references: [id])
+}
+
+model Dispute {
+  id              String        @id @default(cuid())
+  jobId           String
+  jobMilestoneId  String
+  contractorId    String?
+  reason          String
+  evidence        String?
+  decision        String?
+  finalAdjustment Decimal?      @db.Decimal(12, 2)
+  resolvedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  contractor      Contractor?   @relation(fields: [contractorId], references: [id])
+  job             Job           @relation(fields: [jobId], references: [id])
+  milestone       JobMilestone  @relation(fields: [jobMilestoneId], references: [id])
+}
+
+model Batch {
+  id             String       @id @default(cuid())
+  organizationId String
+  batchCode      String
+  weekStart      DateTime
+  weekEnd        DateTime
+  createdAt      DateTime     @default(now())
+  invoices       Invoice[]
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  payouts        Payout[]
+
+  @@unique([organizationId, batchCode])
+}
+
+model AuditLog {
+  id             String           @id @default(cuid())
+  organizationId String
+  jobId          String?
+  submissionId   String?
+  actorUserId    String?
+  action         String
+  entityType     String
+  entityId       String
+  beforeJson     Json?
+  afterJson      Json?
+  createdAt      DateTime         @default(now())
+  actor          User?            @relation(fields: [actorUserId], references: [id])
+  job            Job?             @relation(fields: [jobId], references: [id])
+  organization   Organization     @relation(fields: [organizationId], references: [id])
+  submission     FieldSubmission? @relation(fields: [submissionId], references: [id])
+}
