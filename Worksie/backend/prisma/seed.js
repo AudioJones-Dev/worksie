@@ -260,6 +260,9 @@ async function main() {
     },
   });
 
+  // Additive: re-running the seed upserts each milestone in `milestones` but
+  // does not delete milestones removed from this list. Drop the template (or
+  // its milestones) manually if you rename or remove a milestone code.
   await Promise.all(
     milestones.map((milestone) =>
       prisma.templateMilestone.upsert({

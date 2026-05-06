@@ -352,6 +352,7 @@ model Invoice {
   id            String            @id @default(cuid())
   jobId         String
   clientId      String
+  batchId       String?
   invoiceNumber String?
   invoiceType   InvoiceType
   status        InvoiceStatus     @default(READY_FOR_REVIEW)
@@ -361,6 +362,7 @@ model Invoice {
   issuedAt      DateTime?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
+  batch         Batch?            @relation(fields: [batchId], references: [id])
   client        Client            @relation(fields: [clientId], references: [id])
   job           Job               @relation(fields: [jobId], references: [id])
   lineItems     InvoiceLineItem[]
@@ -429,6 +431,7 @@ model Batch {
   weekStart      DateTime
   weekEnd        DateTime
   createdAt      DateTime     @default(now())
+  invoices       Invoice[]
   organization   Organization @relation(fields: [organizationId], references: [id])
   payouts        Payout[]
 

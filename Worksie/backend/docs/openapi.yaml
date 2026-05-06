@@ -1198,8 +1198,18 @@ components:
         requiresGps: { type: boolean, default: true }
         sortOrder: { type: integer }
     UpdateTemplateMilestoneRequest:
-      allOf:
-        - $ref: '#/components/schemas/CreateTemplateMilestoneRequest'
+      type: object
+      properties:
+        code: { type: string }
+        name: { type: string }
+        description: { type: string }
+        percentValue: { type: number }
+        requiresBeforePhoto: { type: boolean }
+        requiresProgressPhoto: { type: boolean }
+        requiresCompletionPhoto: { type: boolean }
+        requiresVoiceNote: { type: boolean }
+        requiresGps: { type: boolean }
+        sortOrder: { type: integer }
     Job:
       type: object
       required: [id, organizationId, templateId, clientId, siteId, jobCode, title, jobTotalValue, status, invoiceStatus]
@@ -1428,6 +1438,7 @@ components:
         id: { type: string }
         jobId: { type: string }
         clientId: { type: string }
+        batchId: { type: string, nullable: true }
         invoiceNumber: { type: string }
         invoiceType:
           $ref: '#/components/schemas/InvoiceType'
