@@ -1075,7 +1075,7 @@ components:
         id: { type: string }
         organizationId: { type: string }
         name: { type: string }
-        externalRef: { type: string, nullable: true }
+        externalRef: { type: [string, "null"] }
     CreateClientRequest:
       type: object
       required: [name]
@@ -1257,7 +1257,7 @@ components:
       properties:
         id: { type: string }
         jobId: { type: string }
-        templateMilestoneId: { type: string, nullable: true }
+        templateMilestoneId: { type: [string, "null"] }
         code: { type: string }
         name: { type: string }
         percentValue: { type: number }
@@ -1410,7 +1410,7 @@ components:
       properties:
         id: { type: string }
         jobMilestoneId: { type: string }
-        submissionId: { type: string, nullable: true }
+        submissionId: { type: [string, "null"] }
         reviewerUserId: { type: string }
         action:
           $ref: '#/components/schemas/QAAction'
@@ -1438,7 +1438,7 @@ components:
         id: { type: string }
         jobId: { type: string }
         clientId: { type: string }
-        batchId: { type: string, nullable: true }
+        batchId: { type: [string, "null"] }
         invoiceNumber: { type: string }
         invoiceType:
           $ref: '#/components/schemas/InvoiceType'
@@ -1461,7 +1461,7 @@ components:
       properties:
         id: { type: string }
         invoiceId: { type: string }
-        jobMilestoneId: { type: string, nullable: true }
+        jobMilestoneId: { type: [string, "null"] }
         description: { type: string }
         amount:
           $ref: '#/components/schemas/Money'
@@ -1472,7 +1472,7 @@ components:
         id: { type: string }
         contractorId: { type: string }
         jobId: { type: string }
-        batchId: { type: string, nullable: true }
+        batchId: { type: [string, "null"] }
         grossEarned:
           $ref: '#/components/schemas/Money'
         deductions:
@@ -1497,8 +1497,8 @@ components:
       properties:
         id: { type: string }
         jobId: { type: string }
-        jobMilestoneId: { type: string, nullable: true }
-        contractorId: { type: string, nullable: true }
+        jobMilestoneId: { type: [string, "null"] }
+        contractorId: { type: [string, "null"] }
         reasonCode: { type: string }
         amount:
           $ref: '#/components/schemas/Money'
@@ -1525,7 +1525,7 @@ components:
         id: { type: string }
         jobId: { type: string }
         jobMilestoneId: { type: string }
-        contractorId: { type: string, nullable: true }
+        contractorId: { type: [string, "null"] }
         reason: { type: string }
         evidence: { type: string }
         decision: { type: string }
