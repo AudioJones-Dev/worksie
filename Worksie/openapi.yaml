@@ -1,0 +1,336 @@
+openapi: 3.1.0
+info:
+  title: Worksie API
+  version: 0.1.0
+  description: API contract for Worksie operational workflows.
+  license:
+    name: Proprietary
+    url: https://worksie.com/legal/api-license
+servers:
+  - url: https://api.worksie.com
+security:
+  - bearerAuth: []
+paths:
+  /auth/login:
+    post:
+      operationId: login
+      tags: [Auth]
+      summary: Authenticate a user and persist refresh-session metadata.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSession'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /jobs:
+    post:
+      operationId: createJob
+      tags: [Jobs]
+      summary: Create a job with organization-scoped template, client, and site relations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateJobRequest'
+      responses:
+        '201':
+          description: Job created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /sites:
+    post:
+      operationId: createSite
+      tags: [Sites]
+      summary: Create a site for a client in the same organization.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSiteRequest'
+      responses:
+        '201':
+          description: Site created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Site'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /weekly-billing-batches/{batchId}/invoices:
+    get:
+      operationId: listBatchInvoices
+      tags: [Billing]
+      summary: List invoices reconciled by a weekly billing batch.
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+      responses:
+        '200':
+          description: Batch invoices.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Invoice'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /job-milestones/{milestoneId}/assignments:
+    put:
+      operationId: replaceMilestoneAssignments
+      tags: [Jobs]
+      summary: Replace contractor split assignments for a job milestone.
+      description: The backend validates each split is greater than 0 and the milestone assignment total is at most 100 percent.
+      parameters:
+        - $ref: '#/components/parameters/MilestoneId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceMilestoneAssignmentsRequest'
+      responses:
+        '200':
+          description: Assignments replaced.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MilestoneAssignment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Request validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Authentication failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  parameters:
+    BatchId:
+      name: batchId
+      in: path
+      required: true
+      schema:
+        type: string
+    MilestoneId:
+      name: milestoneId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 8
+    AuthSession:
+      type: object
+      required: [accessToken, refreshToken, user]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+    User:
+      type: object
+      required: [id, organizationId, email, displayName, role, sessionVersion]
+      properties:
+        id:
+          type: string
+        organizationId:
+          type: string
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, DISPATCHER, CONTRACTOR, CLIENT]
+        refreshTokenExpires:
+          type:
+            - string
+            - "null"
+          format: date-time
+        lastLoginAt:
+          type:
+            - string
+            - "null"
+          format: date-time
+        sessionVersion:
+          type: integer
+          minimum: 0
+    CreateSiteRequest:
+      type: object
+      required: [organizationId, clientId, name, addressLine1, city, region, postalCode]
+      properties:
+        organizationId:
+          type: string
+        clientId:
+          type: string
+          description: Must reference a Client with the same organizationId.
+        name:
+          type: string
+        addressLine1:
+          type: string
+        city:
+          type: string
+        region:
+          type: string
+        postalCode:
+          type: string
+    Site:
+      allOf:
+        - $ref: '#/components/schemas/CreateSiteRequest'
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: string
+    CreateJobRequest:
+      type: object
+      required: [organizationId, templateId, clientId, siteId]
+      properties:
+        organizationId:
+          type: string
+        templateId:
+          type: string
+          description: Must reference a JobTemplate with the same organizationId.
+        clientId:
+          type: string
+          description: Must reference a Client with the same organizationId.
+        siteId:
+          type: string
+          description: Must reference a Site with the same organizationId.
+        scheduledFor:
+          type:
+            - string
+            - "null"
+          format: date-time
+    Job:
+      allOf:
+        - $ref: '#/components/schemas/CreateJobRequest'
+        - type: object
+          required: [id, status]
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+              enum: [DRAFT, SCHEDULED, IN_PROGRESS, COMPLETE, CANCELLED]
+    Invoice:
+      type: object
+      required: [id, organizationId, jobId, clientId, invoiceNumber, status, totalCents]
+      properties:
+        id:
+          type: string
+        organizationId:
+          type: string
+        jobId:
+          type: string
+        clientId:
+          type: string
+        billingBatchId:
+          type:
+            - string
+            - "null"
+          description: Weekly billing batch used to reconcile this invoice.
+        invoiceNumber:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, ISSUED, PAID, VOID]
+        totalCents:
+          type: integer
+          minimum: 0
+    ReplaceMilestoneAssignmentsRequest:
+      type: object
+      required: [assignments]
+      properties:
+        assignments:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/MilestoneAssignmentInput'
+          description: Sum of splitPercentage across all assignments must be at most 100.
+    MilestoneAssignmentInput:
+      type: object
+      required: [contractorId, splitPercentage]
+      properties:
+        contractorId:
+          type: string
+        splitPercentage:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 100
+    MilestoneAssignment:
+      allOf:
+        - $ref: '#/components/schemas/MilestoneAssignmentInput'
+        - type: object
+          required: [id, organizationId, milestoneId]
+          properties:
+            id:
+              type: string
+            organizationId:
+              type: string
+            milestoneId:
+              type: string
+
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
