@@ -13,9 +13,16 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 
+const firebaseMessagingServiceWorkerConfig = {
+  apiKey: firebaseConfig.apiKey,
+  projectId: firebaseConfig.projectId,
+  messagingSenderId: firebaseConfig.messagingSenderId,
+  appId: firebaseConfig.appId,
+};
+
 const buildServiceWorkerUrl = () => {
   const params = new URLSearchParams(
-    Object.entries(firebaseConfig).filter(([, value]) => Boolean(value)),
+    Object.entries(firebaseMessagingServiceWorkerConfig).filter(([, value]) => Boolean(value)),
   );
 
   return `/firebase-messaging-sw.js?${params.toString()}`;
@@ -46,7 +53,9 @@ export const requestForToken = async () => {
       return null;
     }
 
-    const serviceWorkerRegistration = await navigator.serviceWorker.register(buildServiceWorkerUrl());
+    const serviceWorkerRegistration = await navigator.serviceWorker.register(buildServiceWorkerUrl(), {
+      scope: '/firebase-cloud-messaging-push-scope',
+    });
     const messaging = getMessaging(app);
     const currentToken = await getToken(messaging, {
       vapidKey,

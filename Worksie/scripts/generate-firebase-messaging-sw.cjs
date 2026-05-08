@@ -1,9 +1,19 @@
-/* global importScripts, firebase */
+const { writeFileSync } = require('node:fs');
+const { join } = require('node:path');
+
+const packageLock = require('../package-lock.json');
+const firebaseVersion = packageLock.packages?.['node_modules/firebase']?.version;
+
+if (!firebaseVersion) {
+  throw new Error('Unable to determine installed Firebase version from package-lock.json');
+}
+
+const serviceWorker = `/* global importScripts, firebase */
 // Firebase Messaging service worker.
 // This file lives in public/ and is served as-is, so it uses the Firebase compat
 // SDK version installed by package-lock.json instead of an independently pinned version.
-importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-messaging-compat.js');
 
 const firebaseConfig = Object.fromEntries(new URL(self.location.href).searchParams.entries());
 // Query parameters are strings; reject both missing values and accidentally stringified
@@ -33,3 +43,6 @@ if (hasRequiredConfig) {
 } else {
   console.warn('Firebase messaging service worker was loaded without Firebase configuration.');
 }
+`;
+
+writeFileSync(join(__dirname, '..', 'public', 'firebase-messaging-sw.js'), serviceWorker);

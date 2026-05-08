@@ -81,7 +81,7 @@ This project uses Firebase for push notifications. To connect to your Firebase p
     VITE_FIREBASE_VAPID_KEY="YOUR_VAPID_KEY"
     ```
 
-Once you have completed these steps, the application will be able to connect to your Firebase project and receive push notifications. The Firebase service worker is configured automatically from the same Vite environment variables at registration time, so do not commit project-specific credentials into `public/firebase-messaging-sw.js`.
+Once you have completed these steps, the application will be able to connect to your Firebase project and receive push notifications. The Firebase service worker is generated from the installed Firebase SDK version before `npm run dev` and `npm run build`, and it is configured automatically from the same Vite environment variables at registration time, so do not commit project-specific credentials into `public/firebase-messaging-sw.js`. Browsers typically require `Notification.requestPermission()` to run in response to a user gesture, so call `requestForToken()` from a button click or similar opt-in flow when adding notification UI.
 
 ## 📡 Firebase Remote Config
 
