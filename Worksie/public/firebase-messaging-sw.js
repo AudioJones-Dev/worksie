@@ -1,33 +1,31 @@
-// IMPORTANT:
-// This service worker file is in the 'public' directory and is not processed by Vite.
-// This means it cannot access environment variables and you must replace the placeholder
-// Firebase configuration values below with your actual Firebase project credentials.
+/* global importScripts, firebase */
+// Firebase Messaging service worker.
+// This file lives in public/ and is served as-is, so it uses the compat SDKs
+// from Firebase Hosting instead of bare module imports that require Vite bundling.
+importScripts('https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging-compat.js');
 
-// Import and configure the Firebase SDK
-import { initializeApp } from "firebase/app";
-import { getMessaging, onBackgroundMessage } from "firebase/messaging/sw";
+const firebaseConfig = Object.fromEntries(new URL(self.location.href).searchParams.entries());
+const hasRequiredConfig = [
+  firebaseConfig.apiKey,
+  firebaseConfig.messagingSenderId,
+  firebaseConfig.appId,
+].every((value) => value && value !== 'undefined');
 
-// YOUR FIREBASE CONFIGURATION
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+if (hasRequiredConfig) {
+  firebase.initializeApp(firebaseConfig);
 
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+  const messaging = firebase.messaging();
 
-onBackgroundMessage(messaging, (payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  // Customize notification here
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/favicon.ico'
-  };
+  messaging.onBackgroundMessage((payload) => {
+    const notificationTitle = payload.notification?.title || 'Worksie';
+    const notificationOptions = {
+      body: payload.notification?.body || '',
+      icon: '/favicon.ico',
+    };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});
+    self.registration.showNotification(notificationTitle, notificationOptions);
+  });
+} else {
+  console.warn('Firebase messaging service worker was loaded without Firebase configuration.');
+}
