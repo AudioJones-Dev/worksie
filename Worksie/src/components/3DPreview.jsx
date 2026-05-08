@@ -1,1 +1,5 @@
-const 3DPreview = () => { return <div>3DPreview Component</div>; }; export default 3DPreview;
+const ThreeDPreview = () => {
+  return <div>3DPreview Component</div>;
+};
+
+export default ThreeDPreview;
