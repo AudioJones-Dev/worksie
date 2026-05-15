@@ -1,8 +1,22 @@
-# 🛠 Worksie App
+# Worksie App
 
-Worksie is a full-stack field operations platform built to outpace tools like CompanyCam by integrating advanced project documentation, CRM, scheduling, payment processing, and AI-powered reports into one system.
+Worksie is a field-operations platform combining project documentation,
+CRM, scheduling, payments, and AI-generated reports into one product.
 
-## 🚀 Features
+> **This `Worksie/` directory is the actual application.** The
+> repository root above it holds `docs/`, `config/`, and the agent
+> guardrails (`CLAUDE.md`, `AGENTS.md`). All `npm` and `firebase`
+> commands run from inside this directory.
+
+> **Status: scaffold-stage.** The build pipeline, Firebase wiring, and
+> Remote Config are in place. Most components and pages in `src/` are
+> 1–5 line placeholders. See `../docs/ROADMAP.md` for what's planned
+> vs. what's real.
+
+---
+
+## Intended features (most still stubs — see PRD/ROADMAP)
+
 - GPS-tagged photo & video capture
 - 3D LiDAR scan + floorplan generation
 - AI-generated job reports (PDF)
@@ -11,106 +25,109 @@ Worksie is a full-stack field operations platform built to outpace tools like Co
 - Stripe-integrated payments + invoices
 - Template marketplace for checklists & forms
 
-## 📁 Folder Structure
-Organized by the Soulful Coder 6-Pillar System:
+## Folder layout (this directory)
 
 ```
-src/
-├── components/
-├── pages/
-├── logic/
-├── hooks/
-├── context/
-public/
-assets/
-prompts/
-dataset/
-docs/
-scripts/
+Worksie/
+├── src/
+│   ├── components/    (mostly stubs)
+│   ├── pages/         (mostly stubs)
+│   ├── logic/         firebase.js, remoteConfig.js
+│   ├── App.jsx
+│   ├── main.jsx
+│   └── routes.jsx
+├── public/            firebase-messaging-sw.js + (untracked) config
+├── prompts/           four prompt-defined agents (see ../AGENTS.md)
+├── dataset/           worksie_training_schema.jsonl
+├── scripts/           deploy.sh
+├── docs/              legacy app-level notes (prefer root /docs)
+├── package.json
+├── vite.config.js
+├── tailwind.config.js
+├── postcss.config.js
+├── firebase.json
+└── .env.example
 ```
 
-## 📦 Tech Stack
-- React + TailwindCSS
-- Firebase Hosting + Firestore
-- Stripe API, Claude + GPT agents
-- Replit for frontend & compute
+## Tech stack
 
-## 🧠 Claude Agent Prompts
-Stored in `/prompts`:
-- blueprint_mapper_agent
-- deployment_trigger_agent
-- vibe_designer_agent
-- training_orchestrator_agent
+- React 18 + Vite 4
+- TailwindCSS 3
+- Firebase Hosting + Cloud Messaging + Remote Config
+- Stripe SDK (frontend only; flow not implemented)
+- react-router-dom v6
 
-## ⚙️ Local Setup
+## Local setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/worksie.git
-cd worksie
+# from this Worksie/ directory:
+cp .env.example .env
+# fill in your Firebase web config values in .env
+
+# the Firebase messaging service worker uses an untracked sibling
+# config because it cannot read Vite env vars at runtime:
+cp public/firebase-messaging-sw-config.example.js \
+   public/firebase-messaging-sw-config.js
+# fill in the same Firebase values inside that new file
+
 npm install
 npm run dev
 ```
 
-## 🔁 Deploy to Firebase
+Validation:
+
+```bash
+npm run lint    # ESLint, --max-warnings 0
+npm run build   # production bundle to dist/
+```
+
+There are no tests yet.
+
+## Deploy
+
 ```bash
 npm run build
-firebase deploy
+firebase deploy --only hosting
+# or:
+./scripts/deploy.sh
 ```
 
-## 🤖 Train with Claude
-Upload `worksie_training_schema.jsonl` and prompts into Claude Code and run:
-```txt
-"Use this schema and these agents to scaffold Worksie as a full-stack Firebase + React app."
-```
+See `../docs/DEPLOYMENT.md` for the full deploy and Remote Config
+flow.
 
-## 🔥 Firebase Configuration
+## Firebase configuration
 
-This project uses Firebase for push notifications. To connect to your Firebase project, you will need to set up your environment variables.
+Firebase web config values are read from environment variables. See
+`.env.example` for the canonical list, and `../docs/SECURITY.md` for
+the policy (no real keys in source, no `.env` in git, no real config
+pasted into the service worker).
 
-1.  **Create a `.env` file:** In the root of the `Worksie` directory, create a new file named `.env`.
+The service worker (`public/firebase-messaging-sw.js`) loads its
+Firebase config from `public/firebase-messaging-sw-config.js`, which
+is **gitignored**. Use the `.example.js` template to create it
+locally.
 
-2.  **Add your Firebase credentials:** Copy the contents of `.env.example` into your new `.env` file and replace the placeholder values with your actual Firebase project credentials.
+## Firebase Remote Config
 
-    ```
-    VITE_FIREBASE_API_KEY="YOUR_API_KEY"
-    VITE_FIREBASE_AUTH_DOMAIN="YOUR_AUTH_DOMAIN"
-    VITE_FIREBASE_PROJECT_ID="YOUR_PROJECT_ID"
-    VITE_FIREBASE_STORAGE_BUCKET="YOUR_STORAGE_BUCKET"
-    VITE_FIREBASE_MESSAGING_SENDER_ID="YOUR_MESSAGING_SENDER_ID"
-    VITE_FIREBASE_APP_ID="YOUR_APP_ID"
-    ```
+Live values live in the repo root at `../config/worksie-remote-config.json`
+and are pushed out-of-band (see `../docs/DEPLOYMENT.md`). The frontend
+reads three keys today: `promo_banner_enabled`, `promo_banner_text`,
+and `app_primary_color`.
 
-3.  **Configure the Service Worker:** The Firebase service worker (`public/firebase-messaging-sw.js`) cannot access environment variables directly. You must manually open this file and replace the placeholder Firebase credentials with your actual project credentials.
+## Claude / agent prompts
 
-Once you have completed these steps, the application will be able to connect to your Firebase project and receive push notifications.
+The four agents shipped with Worksie are documented in `../AGENTS.md`.
+Their prompts live in `prompts/`. Their shared training schema lives
+in `dataset/worksie_training_schema.jsonl`.
 
-## 📡 Firebase Remote Config
+## Where to read next
 
-This project uses Firebase Remote Config to allow for dynamic configuration of the application. The configuration is stored in the `config/worksie-remote-config.json` file.
-
-### Importing the Configuration
-
-You can import this configuration into your Firebase project using the Firebase CLI or the REST API.
-
-**Using the REST API (example):**
-
-1.  **Get an access token:**
-    ```bash
-    ACCESS_TOKEN=$(gcloud auth print-access-token)
-    ```
-
-2.  **Push the configuration:**
-    ```bash
-    curl -X PUT \
-     -H "Authorization: Bearer $ACCESS_TOKEN" \
-     -H "Content-Type: application/json; UTF-8" \
-     -d @config/worksie-remote-config.json \
-     "https://firebaseremoteconfig.googleapis.com/v1/projects/YOUR_PROJECT_ID/remoteConfig"
-    ```
-    (Replace `YOUR_PROJECT_ID` with your actual Firebase project ID.)
-
-### Using the Configuration in the App
-
-The application is already set up to fetch and use the Remote Config values. The main logic is in `src/logic/remoteConfig.js`.
-
-The `PromoBanner` component and the primary color are currently controlled by Remote Config. You can extend this to other parts of the application as needed.
+- `../CLAUDE.md` — agent guardrails (read before automating changes).
+- `../AGENTS.md` — agent roster.
+- `../docs/PRD.md` — product scope.
+- `../docs/ROADMAP.md` — phase plan.
+- `../docs/DESIGN.md` — architecture.
+- `../docs/SECURITY.md` — secrets policy.
+- `../docs/DEPLOYMENT.md` — deploy + Remote Config.
+- `../docs/DECISIONS.md` — ADRs and open questions.
+- `../docs/CHANGELOG.md` — release notes.
