@@ -1,33 +1,46 @@
-// IMPORTANT:
-// This service worker file is in the 'public' directory and is not processed by Vite.
-// This means it cannot access environment variables and you must replace the placeholder
-// Firebase configuration values below with your actual Firebase project credentials.
+// Firebase Cloud Messaging service worker.
+//
+// This file runs in a worker context that CANNOT read Vite env vars
+// (`import.meta.env` is undefined here). It loads its Firebase web
+// config at runtime from the sibling file
+// `firebase-messaging-sw-config.js`, which is gitignored on purpose.
+//
+// Setup:
+//   1. Copy `firebase-messaging-sw-config.example.js` to
+//      `firebase-messaging-sw-config.js` in this directory.
+//   2. Fill in the same Firebase web config values you put in
+//      `Worksie/.env`.
+//
+// Do NOT paste real Firebase config into this file. See
+// docs/SECURITY.md for the rationale.
 
-// Import and configure the Firebase SDK
+importScripts("./firebase-messaging-sw-config.js");
+
 import { initializeApp } from "firebase/app";
 import { getMessaging, onBackgroundMessage } from "firebase/messaging/sw";
 
-// YOUR FIREBASE CONFIGURATION
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+const firebaseConfig = self.__WORKSIE_FIREBASE_CONFIG__;
+
+if (!firebaseConfig || !firebaseConfig.apiKey) {
+  // Surface a clear error instead of silently failing. The service
+  // worker will still register, but push notifications will not work
+  // until the config file is in place.
+  console.error(
+    "[firebase-messaging-sw] Missing firebase-messaging-sw-config.js. " +
+      "Copy firebase-messaging-sw-config.example.js and fill in your " +
+      "Firebase web config. See docs/SECURITY.md."
+  );
+}
 
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
 onBackgroundMessage(messaging, (payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  // Customize notification here
-  const notificationTitle = payload.notification.title;
+  console.log("[firebase-messaging-sw] background message", payload);
+  const notificationTitle = payload?.notification?.title ?? "Worksie";
   const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/favicon.ico'
+    body: payload?.notification?.body ?? "",
+    icon: "/favicon.ico",
   };
-
   self.registration.showNotification(notificationTitle, notificationOptions);
 });

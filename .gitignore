@@ -7,9 +7,15 @@ build/
 
 # Firebase
 .firebase/
+.firebase-debug.log
 
 # Environment variables
 .env
+.env.local
+*.local
+
+# Local Firebase messaging service-worker config (see docs/SECURITY.md)
+Worksie/public/firebase-messaging-sw-config.js
 
 # OS files
 .DS_Store
