@@ -1,16 +1,34 @@
-# Node modules
+# Dependencies
 node_modules/
+.pnpm-store/
 
 # Build output
 dist/
 build/
+.next/
+.turbo/
+.expo/
+.expo-shared/
+*.tsbuildinfo
 
-# Firebase
-.firebase/
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
 
-# Environment variables
+# Env
 .env
+.env.local
+.env.*.local
 
-# OS files
+# OS / editor
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Supabase local
+supabase/.branches
+supabase/.temp

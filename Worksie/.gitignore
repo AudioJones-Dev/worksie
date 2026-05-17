@@ -1,9 +1,0 @@
-# Dependencies
-/node_modules
-
-# Vite
-/dist
-/coverage
-*.log
-.env
-.env.*

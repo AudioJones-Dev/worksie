@@ -1,0 +1,21 @@
+{
+  "name": "@worksie/config",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.cjs",
+  "files": [
+    "eslint-preset-node.cjs",
+    "tsconfig.preset.json"
+  ],
+  "scripts": {
+    "lint": "echo 'no-op: presets only'",
+    "typecheck": "echo 'no-op: presets only'",
+    "build": "echo 'no-op: presets only'",
+    "clean": "echo 'no-op'"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^8.57.1"
+  }
+}
