@@ -4,13 +4,14 @@
 {"kind":"entity","name":"User","fields":["id","auth_user_id","email","display_name","phone"],"rules":["auth_user_id_maps_to_supabase_auth"]}
 {"kind":"entity","name":"Membership","fields":["id","tenant_id","user_id","role","status"],"role_enum":["operator","back_office","contractor","customer"],"status_enum":["invited","active","suspended"]}
 {"kind":"entity","name":"BusinessProfile","fields":["id","tenant_id","legal_name","dba","jurisdictions","default_safety_pack_id"]}
-{"kind":"entity","name":"ServiceDefinition","fields":["id","tenant_id","name","category","default_payout_rule_id","required_gear","required_documents","required_safety_steps","checklist_template_id"]}
+{"kind":"entity","name":"ServiceDefinition","fields":["id","tenant_id","name","category","default_payout_rule_id","required_gear","required_documents","required_safety_steps","checklist_template_id","customer_signoff_required"]}
 {"kind":"entity","name":"DocumentType","fields":["id","tenant_id","name","applies_to","expirable","gating"],"applies_to_enum":["contractor","business","vehicle"]}
 {"kind":"entity","name":"ContractorDocument","fields":["id","tenant_id","contractor_membership_id","document_type_id","file_id","issued_on","expires_on","verified_by","verified_at","status"],"status_enum":["pending","verified","rejected","expired"]}
 {"kind":"entity","name":"SafetyPack","fields":["id","tenant_id","name","version","content_ref"]}
 {"kind":"entity","name":"SafetyAcknowledgement","fields":["id","tenant_id","contractor_membership_id","safety_pack_id","signed_at","signature_file_id"]}
 {"kind":"entity","name":"WorkOrder","fields":["id","tenant_id","service_definition_id","service_snapshot_json","customer_id","address","gps","scheduled_for","assigned_contractor_membership_id","status","created_at","created_by"],"status_enum":["draft","scheduled","dispatched","in_progress","awaiting_signoff","completed","invoiced","paid_out","cancelled","voided"]}
 {"kind":"entity","name":"WorkOrderLineItem","fields":["id","tenant_id","work_order_id","description","quantity","unit","piece_rate_amount","completed_at"]}
+{"kind":"entity","name":"WorkOrderEvent","fields":["id","tenant_id","work_order_id","from_state","to_state","actor","at","reason","source"],"source_enum":["web_admin","mobile","system"],"rules":["append_only","written_on_every_work_order_state_transition","survives_cancelled_and_voided"]}
 {"kind":"entity","name":"ChecklistTemplate","fields":["id","tenant_id","name","steps_json"]}
 {"kind":"entity","name":"ChecklistInstance","fields":["id","tenant_id","work_order_id","template_id"]}
 {"kind":"entity","name":"ChecklistStep","fields":["id","tenant_id","checklist_instance_id","ordinal","label","photo_required","signature_required","completed_at","completed_by"]}

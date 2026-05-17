@@ -61,6 +61,8 @@ What the business is capable of performing.
 - `required_documents` (list — see Document Type)
 - `required_safety_steps` (list — see Safety Step)
 - `checklist_template_id`
+- `customer_signoff_required` (bool — gates `awaiting_signoff → completed`;
+  frozen into `service_snapshot_json` on work-order creation)
 
 ### Document Type
 A required compliance artifact.
@@ -127,6 +129,21 @@ A discrete unit of work inside a work order. Drives piece-rate payout.
 - `unit` (e.g. `each`, `linear_foot`)
 - `piece_rate_amount` (nullable; from payout rule)
 - `completed_at`
+
+### Work Order Event
+Immutable audit row written on every Work Order state transition. See
+`WORK_ORDER_LIFECYCLE.md` for the transition matrix.
+- `id`
+- `tenant_id`
+- `work_order_id`
+- `from_state` (nullable for the initial `draft` insert)
+- `to_state`
+- `actor` (user id, nullable for `source = system`)
+- `at`
+- `reason` (nullable; required for `cancelled` and `voided`)
+- `source` ∈ {`web_admin`, `mobile`, `system`}
+
+Append-only. Survives `cancelled` and `voided`. Never updated or deleted.
 
 ### Checklist Template / Checklist Instance
 - Template: ordered list of steps with required-photo flags.
@@ -195,6 +212,7 @@ Tenant 1—* BusinessProfile
 Tenant 1—* ServiceDefinition 1—* (Required Docs, Safety Steps, Gear)
 Tenant 1—* WorkOrder *—1 ServiceDefinition
 WorkOrder 1—* WorkOrderLineItem
+WorkOrder 1—* WorkOrderEvent
 WorkOrder 1—* ChecklistInstance —* ChecklistStep —* ProofOfWorkArtifact
 WorkOrder 1—1 CustomerSignoff
 Contractor (Membership) 1—* ContractorDocument *—1 DocumentType
@@ -212,7 +230,12 @@ PayoutPeriod 1—* PayoutLine *—1 WorkOrder
 4. A Work Order cannot transition to `completed` without:
    - All checklist steps in the bound Checklist Instance complete.
    - All required Proof-of-Work artifacts present.
-   - A Customer Sign-off, if the Service Definition requires one.
-5. Payout Lines are append-only inside an `approved` Payout Period.
+   - A Customer Sign-off, if the parent Service Definition has
+     `customer_signoff_required = true` (as captured in
+     `service_snapshot_json`).
+5. Every Work Order state transition writes exactly one `WorkOrderEvent`
+   row. `WorkOrderEvent` is append-only — never updated, never deleted,
+   not even on `cancelled` or `voided`.
+6. Payout Lines are append-only inside an `approved` Payout Period.
    Corrections happen via a new period or an explicit adjustment row, not
    by editing history.
