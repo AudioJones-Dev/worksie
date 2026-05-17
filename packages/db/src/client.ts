@@ -1,12 +1,14 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
-// Phase 1: minimal client factory. Phase 2 will pass the schema and wire
-// RLS-aware Supabase auth context. The factory takes the connection URL
-// explicitly so the package never reaches into process.env directly.
+import { schema } from "./schema/index";
+
+// Phase 2: client factory wired to the canonical schema so query builders
+// get inferred row/insert types. The factory takes the connection URL
+// explicitly so this package never reaches into process.env directly.
 export function createDbClient(databaseUrl: string) {
   const queryClient = postgres(databaseUrl, { prepare: false });
-  return drizzle(queryClient);
+  return drizzle(queryClient, { schema });
 }
 
 export type DbClient = ReturnType<typeof createDbClient>;
