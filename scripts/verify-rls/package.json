@@ -1,0 +1,25 @@
+{
+  "name": "@worksie/verify-rls",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "verify": "tsx src/index.ts",
+    "lint": "eslint src --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit",
+    "clean": "rm -rf .turbo node_modules"
+  },
+  "dependencies": {
+    "@worksie/auth": "workspace:*",
+    "@worksie/domain": "workspace:*",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "@worksie/config": "workspace:*",
+    "eslint": "^8.57.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

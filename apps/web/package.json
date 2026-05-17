@@ -11,6 +11,9 @@
     "clean": "rm -rf .next .turbo node_modules"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.46.1",
+    "@worksie/auth": "workspace:*",
     "@worksie/domain": "workspace:*",
     "@worksie/types": "workspace:*",
     "next": "15.0.3",
