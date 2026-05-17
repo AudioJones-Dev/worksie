@@ -1,116 +1,121 @@
-# 🛠 Worksie App
+# Worksie
 
-Worksie is a full-stack field operations platform built to outpace tools like CompanyCam by integrating advanced project documentation, CRM, scheduling, payment processing, and AI-powered reports into one system.
+Mobile-first configurable operations platform for blue-collar businesses.
+Worksie models what a business is *capable of performing* and turns that
+model into field-ready execution: onboarding, dispatch, work orders,
+safety, documentation, proof-of-work, and 1099 payout.
 
-## 🚀 Features
-- GPS-tagged photo & video capture
-- 3D LiDAR scan + floorplan generation
-- AI-generated job reports (PDF)
-- CRM pipeline with task management
-- Real-time chat, notifications, and permissions
-- Stripe-integrated payments + invoices
-- Template marketplace for checklists & forms
+> **Status:** Architecture decision branch. The legacy Vite + Firebase
+> scaffold in this directory is being retired. See
+> [`docs/WORKSIE_SPINE.md`](docs/WORKSIE_SPINE.md) and
+> [`docs/FIREBASE_MIGRATION_PLAN.md`](docs/FIREBASE_MIGRATION_PLAN.md).
 
-## 📁 Folder Structure
-Organized by the Soulful Coder 6-Pillar System:
+## Start Here
+
+| Doc                                                                | What it covers                                          |
+|--------------------------------------------------------------------|---------------------------------------------------------|
+| [`docs/WORKSIE_SPINE.md`](docs/WORKSIE_SPINE.md)                   | Product identity, doctrine, canonical stack             |
+| [`docs/PRD.md`](docs/PRD.md)                                       | Personas, top-level flows, v1 scope                     |
+| [`docs/DOMAIN_MODEL.md`](docs/DOMAIN_MODEL.md)                     | Entities, relationships, hard rules                     |
+| [`docs/TECH_STACK_DECISION.md`](docs/TECH_STACK_DECISION.md)       | Why Supabase + Next.js + Expo + PowerSync               |
+| [`docs/OFFLINE_FIRST_ARCHITECTURE.md`](docs/OFFLINE_FIRST_ARCHITECTURE.md) | Sync classes, conflict rules, upload queue       |
+| [`docs/ONBOARDING_FLOWS.md`](docs/ONBOARDING_FLOWS.md)             | Tenant and contractor onboarding, compliance gate       |
+| [`docs/WORK_ORDER_LIFECYCLE.md`](docs/WORK_ORDER_LIFECYCLE.md)     | States, transitions, proof-of-work gates                |
+| [`docs/PAYOUT_RULES.md`](docs/PAYOUT_RULES.md)                     | Piece-rate / completion / hourly, weekly periods        |
+| [`docs/FIREBASE_MIGRATION_PLAN.md`](docs/FIREBASE_MIGRATION_PLAN.md) | What legacy artifacts remain and when they go         |
+
+## Canonical Stack
+
+| Layer            | Choice                          |
+|------------------|---------------------------------|
+| Web admin        | Next.js + TypeScript            |
+| Mobile field app | Expo (React Native)             |
+| Database         | Supabase Postgres               |
+| Auth             | Supabase Auth                   |
+| Storage          | Supabase Storage                |
+| Offline sync     | PowerSync + SQLite              |
+| Schema/ORM       | Drizzle                         |
+| Web hosting      | Vercel                          |
+| Mobile builds    | EAS                             |
+| Payments (later) | Stripe Connect                  |
+| Email (later)    | Resend                          |
+| SMS (later)      | Twilio                          |
+
+Firebase is deprecated as forward architecture. See the migration plan.
+
+## Repo Layout (Current vs. Target)
+
+**Current (legacy scaffold, being retired):**
 
 ```
-src/
-├── components/
-├── pages/
-├── logic/
-├── hooks/
-├── context/
-public/
-assets/
-prompts/
-dataset/
-docs/
-scripts/
+Worksie/
+├── src/              # Vite + React SPA (legacy)
+├── public/           # Includes Firebase messaging SW (legacy)
+├── docs/             # Canonical product docs (this directory)
+├── dataset/          # Training/eval schema
+├── prompts/          # Agent prompts
+├── scripts/          # (Firebase deploy script removed)
+├── firebase.json     # Legacy hosting config
+└── package.json      # Still references firebase npm pkg (legacy)
+config/
+└── worksie-remote-config.json   # Legacy Remote Config snapshot
 ```
 
-## 📦 Tech Stack
-- React + TailwindCSS
-- Firebase Hosting + Firestore
-- Stripe API, Claude + GPT agents
-- Replit for frontend & compute
+**Target after Phase 1 (see `docs/FIREBASE_MIGRATION_PLAN.md`):**
 
-## 🧠 Claude Agent Prompts
-Stored in `/prompts`:
-- blueprint_mapper_agent
-- deployment_trigger_agent
-- vibe_designer_agent
-- training_orchestrator_agent
+```
+worksie/
+├── apps/
+│   ├── web/        # Next.js admin
+│   └── mobile/     # Expo field app
+├── packages/
+│   ├── db/         # Drizzle schema + migrations
+│   ├── domain/     # Rules engine, lifecycle, payout
+│   ├── ui/         # Shared tokens / primitives
+│   └── config/
+├── docs/
+├── prompts/
+└── dataset/
+```
 
-## ⚙️ Local Setup
+## Reference Domain Pack
+
+Worksie is being designed against a real Florida accessibility-install
+operator. The reference domain pack includes:
+
+- EZ-ACCESS ADA ramps and steps
+- Ramp recovery and removal
+- Complete Access and Red Team vertical lifts
+- Bruno and Harmar stair, vertical, and vehicle lifts
+- Mobile homes and trailers
+- Skirting and skirt removal
+- Hurricane tie-downs
+- Electrical exposure, heavy lifting, heat/hydration safety
+- 1099 subcontractor onboarding (W-9, COI, license, insurance,
+  safety acknowledgements)
+- Monday payout for prior-week completed work
+- Piece-rate and completion-based invoicing
+
+Worksie must generalize beyond this pack, but it must work cleanly for it.
+
+## Building the Legacy Scaffold
+
+The existing Vite scaffold still builds; it's kept around only until the
+Phase 1 monorepo replaces it. It is **not** the future of the product.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/worksie.git
-cd worksie
+cd Worksie
 npm install
 npm run dev
 ```
 
-## 🔁 Deploy to Firebase
-```bash
-npm run build
-firebase deploy
-```
+Anything in `Worksie/src/`, `Worksie/firebase.json`,
+`Worksie/public/firebase-messaging-sw.js`, the `firebase` npm dependency
+in `Worksie/package.json`, and `config/worksie-remote-config.json` will
+be deleted in the Phase 1 branch.
 
-## 🤖 Train with Claude
-Upload `worksie_training_schema.jsonl` and prompts into Claude Code and run:
-```txt
-"Use this schema and these agents to scaffold Worksie as a full-stack Firebase + React app."
-```
+## Contributing Direction Changes
 
-## 🔥 Firebase Configuration
-
-This project uses Firebase for push notifications. To connect to your Firebase project, you will need to set up your environment variables.
-
-1.  **Create a `.env` file:** In the root of the `Worksie` directory, create a new file named `.env`.
-
-2.  **Add your Firebase credentials:** Copy the contents of `.env.example` into your new `.env` file and replace the placeholder values with your actual Firebase project credentials.
-
-    ```
-    VITE_FIREBASE_API_KEY="YOUR_API_KEY"
-    VITE_FIREBASE_AUTH_DOMAIN="YOUR_AUTH_DOMAIN"
-    VITE_FIREBASE_PROJECT_ID="YOUR_PROJECT_ID"
-    VITE_FIREBASE_STORAGE_BUCKET="YOUR_STORAGE_BUCKET"
-    VITE_FIREBASE_MESSAGING_SENDER_ID="YOUR_MESSAGING_SENDER_ID"
-    VITE_FIREBASE_APP_ID="YOUR_APP_ID"
-    ```
-
-3.  **Configure the Service Worker:** The Firebase service worker (`public/firebase-messaging-sw.js`) cannot access environment variables directly. You must manually open this file and replace the placeholder Firebase credentials with your actual project credentials.
-
-Once you have completed these steps, the application will be able to connect to your Firebase project and receive push notifications.
-
-## 📡 Firebase Remote Config
-
-This project uses Firebase Remote Config to allow for dynamic configuration of the application. The configuration is stored in the `config/worksie-remote-config.json` file.
-
-### Importing the Configuration
-
-You can import this configuration into your Firebase project using the Firebase CLI or the REST API.
-
-**Using the REST API (example):**
-
-1.  **Get an access token:**
-    ```bash
-    ACCESS_TOKEN=$(gcloud auth print-access-token)
-    ```
-
-2.  **Push the configuration:**
-    ```bash
-    curl -X PUT \
-     -H "Authorization: Bearer $ACCESS_TOKEN" \
-     -H "Content-Type: application/json; UTF-8" \
-     -d @config/worksie-remote-config.json \
-     "https://firebaseremoteconfig.googleapis.com/v1/projects/YOUR_PROJECT_ID/remoteConfig"
-    ```
-    (Replace `YOUR_PROJECT_ID` with your actual Firebase project ID.)
-
-### Using the Configuration in the App
-
-The application is already set up to fetch and use the Remote Config values. The main logic is in `src/logic/remoteConfig.js`.
-
-The `PromoBanner` component and the primary color are currently controlled by Remote Config. You can extend this to other parts of the application as needed.
+The **spine** is the contract. If a product, scope, or stack decision
+changes and `docs/WORKSIE_SPINE.md` doesn't reflect the change, the
+change isn't done.

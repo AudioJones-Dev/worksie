@@ -1,78 +1,70 @@
-Worksie/
-  └── README.md
-  └── .env
-  └── firebase.json
-  └── package.json
-  └── replit.nix
-  └── .replit
-  └── public/
-  └── assets/
-  └── docs/
+Target repo layout (after Phase 1 monorepo scaffold).
+See docs/FIREBASE_MIGRATION_PLAN.md for the current-vs-target diff.
+
+worksie/
+  ├── apps/
+  │   ├── web/                       # Next.js + TypeScript admin
+  │   │   ├── app/                   # Next.js app router
+  │   │   ├── components/
+  │   │   ├── lib/
+  │   │   └── package.json
+  │   └── mobile/                    # Expo + TypeScript field app
+  │       ├── app/                   # Expo Router
+  │       ├── components/
+  │       ├── lib/                   # PowerSync client, Supabase client
+  │       └── package.json
+  ├── packages/
+  │   ├── db/                        # Drizzle schema + migrations
+  │   │   ├── schema/
+  │   │   ├── migrations/
+  │   │   └── generated/             # generated types
+  │   ├── domain/                    # rules engine, lifecycle, payout
+  │   │   ├── lifecycle/
+  │   │   ├── compliance/
+  │   │   ├── payout/
+  │   │   └── tests/
+  │   ├── ui/                        # shared tokens / primitives
+  │   └── config/                    # shared runtime config types
+  ├── supabase/                      # Supabase local dev config
+  │   ├── config.toml
+  │   ├── migrations/                # mirror of packages/db/migrations
+  │   └── seed/
+  ├── docs/
+  │   ├── WORKSIE_SPINE.md
+  │   ├── PRD.md
+  │   ├── DOMAIN_MODEL.md
+  │   ├── TECH_STACK_DECISION.md
+  │   ├── OFFLINE_FIRST_ARCHITECTURE.md
+  │   ├── ONBOARDING_FLOWS.md
+  │   ├── WORK_ORDER_LIFECYCLE.md
+  │   ├── PAYOUT_RULES.md
+  │   └── FIREBASE_MIGRATION_PLAN.md
+  ├── prompts/
+  │   ├── prompt_blueprint_mapper.md
+  │   ├── prompt_deployment_trigger.md
+  │   ├── prompt_training_orchestrator.md
+  │   └── prompt_ui_designer.md
   └── dataset/
-  └── prompts/
-  └── scripts/
-  └── src/
-Worksie/public/
-  └── index.html
-  └── favicon.ico
-  └── manifest.json
-Worksie/assets/
-  └── logo.png
-  └── background.jpg
-  └── icons/
-Worksie/docs/
-  └── component_reference.md
-  └── dev_handoff_notes.md
-  └── api_integration_guide.md
-Worksie/dataset/
-  └── worksie_training_schema.jsonl
-Worksie/prompts/
-  └── prompt_blueprint_mapper.md
-  └── prompt_deployment_trigger.md
-  └── prompt_ui_designer.md
-Worksie/scripts/
-  └── deploy.sh
-  └── generate_jsonl.py
-Worksie/src/
-  └── main.jsx
-  └── App.jsx
-  └── routes.jsx
-  └── components/
-  └── pages/
-  └── logic/
-  └── hooks/
-  └── context/
-Worksie/src/components/
-  └── LoginForm.jsx
-  └── SignupForm.jsx
-  └── UserProfile.jsx
-  └── AvatarUpload.jsx
-  └── MediaCapture.jsx
-  └── Annotator.jsx
-  └── GalleryViewer.jsx
-  └── LiDARScanner.jsx
-  └── AutoReportBuilder.jsx
-  └── ChecklistBuilder.jsx
-Worksie/src/pages/
-  └── Home.jsx
-  └── Dashboard.jsx
-  └── Reports.jsx
-  └── Tasks.jsx
-  └── CRM.jsx
-  └── Settings.jsx
-  └── Support.jsx
-Worksie/src/logic/
-  └── auth.js
-  └── firestore.js
-  └── stripe.js
-  └── reportBuilder.js
-  └── roleManager.js
-  └── scanProcessor.js
-Worksie/src/hooks/
-  └── useAuth.js
-  └── useUpload.js
-  └── useReportGen.js
-Worksie/src/context/
-  └── AuthContext.js
-  └── UserContext.js
-  └── ThemeContext.js
+      └── worksie_training_schema.jsonl
+
+
+Current (legacy, retired in Phase 1):
+
+Worksie/
+  ├── src/                           # Vite + React SPA (legacy)
+  │   ├── App.jsx                    # imports firebase.js (replace later)
+  │   ├── components/
+  │   ├── logic/
+  │   │   ├── firebase.js            # replace later
+  │   │   └── remoteConfig.js        # replace later
+  │   └── pages/
+  ├── public/
+  │   └── firebase-messaging-sw.js   # replace later (Expo Push)
+  ├── docs/                          # canonical product docs (this dir)
+  ├── dataset/
+  ├── prompts/
+  ├── firebase.json                  # archive as legacy
+  └── package.json                   # firebase npm dep — replace later
+
+config/
+  └── worksie-remote-config.json     # archive as legacy
