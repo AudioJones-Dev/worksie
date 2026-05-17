@@ -1,0 +1,66 @@
+Repo layout (Phase 1 scaffold landed). Source of truth: README.md.
+
+worksie/
+├── apps/
+│   ├── web/                            # Next.js App Router + TypeScript + Tailwind
+│   │   ├── src/app/
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx                # placeholder home
+│   │   │   ├── healthz/route.ts        # GET /healthz → { ok: true, phase: "1" }
+│   │   │   └── globals.css
+│   │   ├── next.config.mjs
+│   │   ├── tailwind.config.ts
+│   │   ├── postcss.config.js
+│   │   ├── tsconfig.json
+│   │   └── package.json
+│   └── mobile/                         # Expo + Expo Router + TypeScript
+│       ├── app/
+│       │   ├── _layout.tsx
+│       │   └── index.tsx               # Health screen
+│       ├── app.json
+│       ├── babel.config.js
+│       ├── tsconfig.json
+│       └── package.json
+├── packages/
+│   ├── db/                             # Drizzle schema + client (Phase 1: placeholder)
+│   │   ├── drizzle.config.ts           # emits SQL into ../../supabase/migrations
+│   │   ├── src/
+│   │   │   ├── index.ts
+│   │   │   ├── client.ts
+│   │   │   └── schema/index.ts         # TODO: Phase 2 lands real tables from docs/DOMAIN_MODEL.md
+│   │   └── package.json
+│   ├── domain/                         # Entity names, work-order states, sync classes
+│   │   ├── src/index.ts
+│   │   └── package.json
+│   ├── types/                          # Shared cross-package utility types
+│   │   ├── src/index.ts
+│   │   └── package.json
+│   ├── ui/                             # Design tokens (Phase 1) → primitives (Phase 3+)
+│   │   ├── src/
+│   │   │   ├── index.ts
+│   │   │   └── tokens.ts
+│   │   └── package.json
+│   └── config/                         # Shared eslint / tsconfig presets
+│       ├── eslint-preset-node.cjs
+│       ├── tsconfig.preset.json
+│       └── package.json
+├── supabase/
+│   ├── config.toml                     # Supabase CLI local config
+│   └── migrations/                     # empty in Phase 1
+├── docs/                               # Canonical product / architecture docs
+├── prompts/                            # Agent prompts
+├── dataset/                            # Training / eval schema
+├── .github/workflows/
+│   └── ci.yml                          # lint + typecheck + build
+├── .editorconfig
+├── .nvmrc                              # Node 20 LTS
+├── .npmrc
+├── .gitignore
+├── package.json                        # workspace root (packageManager: pnpm@9.12.0)
+├── pnpm-workspace.yaml
+├── tsconfig.base.json
+├── turbo.json
+└── README.md
+
+Phase 1 scope is scaffold only. No domain features implemented yet.
+See README.md "Phase Discipline" for what each subsequent phase owns.

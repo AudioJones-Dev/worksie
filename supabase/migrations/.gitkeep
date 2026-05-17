@@ -1,0 +1,2 @@
+# Phase 1 ships zero migrations.
+# Phase 2 generates SQL here via `pnpm --filter @worksie/db generate`.
