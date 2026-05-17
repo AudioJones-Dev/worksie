@@ -3,76 +3,98 @@ Worksie/
   └── .env
   └── firebase.json
   └── package.json
-  └── replit.nix
-  └── .replit
+  └── vite.config.js
+  └── tailwind.config.js
+  └── postcss.config.js
   └── public/
-  └── assets/
   └── docs/
   └── dataset/
   └── prompts/
   └── scripts/
   └── src/
+
 Worksie/public/
   └── index.html
+  └── firebase-messaging-sw.js
   └── favicon.ico
-  └── manifest.json
-Worksie/assets/
-  └── logo.png
-  └── background.jpg
-  └── icons/
+  └── manifest.json                    # PWA manifest (mobile-first)
+
 Worksie/docs/
-  └── component_reference.md
-  └── dev_handoff_notes.md
-  └── api_integration_guide.md
+  └── PRD.md                           # Vision, principles, scope (mobile-first)
+  └── DOMAIN_MODEL.md                  # Entities, fields, relationships
+  └── ONBOARDING_FLOWS.md              # Business + 1099 contractor onboarding
+  └── WORK_ORDER_LIFECYCLE.md          # State machine & rule gates
+  └── PAYOUT_RULES.md                  # Pricing models, cycles, splits
+  └── worksie_folder_structure.txt     # This file
+
 Worksie/dataset/
-  └── worksie_training_schema.jsonl
+  └── worksie_training_schema.jsonl    # Domain entity exemplars (Florida Ramp & Lift)
+
 Worksie/prompts/
-  └── prompt_blueprint_mapper.md
-  └── prompt_deployment_trigger.md
-  └── prompt_ui_designer.md
+  └── prompt_blueprint_mapper.md       # Domain-aware blueprint extraction
+  └── prompt_training_orchestrator.md  # Dataset ingestion + agent retraining
+  └── prompt_deployment_trigger.md     # Build/deploy automation triggers
+  └── prompt_ui_designer.md            # Mobile-first UX design
+
 Worksie/scripts/
   └── deploy.sh
-  └── generate_jsonl.py
-Worksie/src/
+  └── generate_jsonl.py                # (planned) regenerate dataset from docs
+
+Worksie/src/                           # PLACEHOLDER — non-binding until Phase 1
   └── main.jsx
   └── App.jsx
   └── routes.jsx
   └── components/
   └── pages/
   └── logic/
-  └── hooks/
-  └── context/
-Worksie/src/components/
-  └── LoginForm.jsx
-  └── SignupForm.jsx
-  └── UserProfile.jsx
-  └── AvatarUpload.jsx
-  └── MediaCapture.jsx
-  └── Annotator.jsx
-  └── GalleryViewer.jsx
-  └── LiDARScanner.jsx
-  └── AutoReportBuilder.jsx
-  └── ChecklistBuilder.jsx
-Worksie/src/pages/
-  └── Home.jsx
-  └── Dashboard.jsx
-  └── Reports.jsx
-  └── Tasks.jsx
-  └── CRM.jsx
-  └── Settings.jsx
-  └── Support.jsx
+  └── hooks/                           # (planned)
+  └── context/                         # (planned)
+
+# Phase 1+ planned additions under src/
 Worksie/src/logic/
-  └── auth.js
-  └── firestore.js
-  └── stripe.js
-  └── reportBuilder.js
-  └── roleManager.js
-  └── scanProcessor.js
-Worksie/src/hooks/
-  └── useAuth.js
-  └── useUpload.js
-  └── useReportGen.js
-Worksie/src/context/
+  └── firebase.js
+  └── remoteConfig.js
+  └── auth.js                          # (planned) Firebase Auth wrappers
+  └── firestore.js                     # (planned) Firestore client + helpers
+  └── tenant.js                        # (planned) current-Business resolution
+  └── storage.js                       # (planned) Firebase Storage (media, docs)
+  └── outbox.js                        # (planned) offline write queue
+  └── sync.js                          # (planned) replay + media uploader
+  └── schema/                          # (planned) zod validators per entity
+       └── business.js
+       └── capability.js
+       └── serviceTemplate.js
+       └── jobConfiguration.js
+       └── contractorRequirement.js
+       └── safetyRule.js
+       └── documentationRule.js
+       └── proofOfWorkRule.js
+       └── payoutRule.js
+       └── workOrder.js
+       └── contractor.js
+       └── contractorProfile.js
+       └── invoice.js
+       └── payout.js
+       └── auditTrail.js
+       └── domainPack.js
+  └── rules/                           # (planned) rule satisfaction engine
+       └── evaluate.js
+       └── gates.js
+
+Worksie/src/context/                   # (planned)
   └── AuthContext.js
-  └── UserContext.js
-  └── ThemeContext.js
+  └── TenantContext.js                 # current Business
+  └── OfflineContext.js                # connectivity + outbox state
+
+Worksie/src/hooks/                     # (planned)
+  └── useAuth.js
+  └── useTenant.js
+  └── useWorkOrder.js
+  └── useOutbox.js
+  └── useCamera.js
+
+Worksie/src/pages/                     # mobile-first surfaces
+  └── (Phase 1+) field/ active work order, today, onboarding,
+                  safety acks, payouts, invoices
+  └── (Phase 1+) admin/ capabilities, services, job configurations,
+                  rules, dispatch, approvals, invoices, payout cycles
