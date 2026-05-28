@@ -12,8 +12,11 @@ what it sells, and it produces field-ready execution from that model:
 onboarding, dispatch, work orders, safety, documentation, proof-of-work, and
 1099 payout.
 
-Worksie is **not** another CRM or another photo log. The previous framing
-("outpace CompanyCam") is retired.
+Worksie is **not** another CRM, scheduling platform, accounting tool, generic
+form builder, or photo documentation app. The previous framing ("outpace
+CompanyCam") is retired. Worksie owns the operational readiness layer between
+field execution and downstream business systems: the answer to whether a field
+job is complete, documented, approved, and ready to bill.
 
 ## Who Worksie Serves
 
@@ -48,6 +51,10 @@ them.
    safety acknowledgements are modeled, expirable, and gating.
 7. **1099 payout is a workflow, not a spreadsheet.** Piece-rate and
    completion-based invoicing must be derivable from work orders.
+8. **Readiness is the product boundary.** Worksie integrates with CRMs,
+   accounting, scheduling, and dispatch systems rather than replacing them; it
+   owns proof capture, completeness validation, approval routing, billing
+   readiness, operational memory, and downstream automation triggers.
 
 ## Canonical Stack
 
@@ -101,6 +108,8 @@ Worksie must generalize beyond this pack, but it must work cleanly for it.
 - `docs/WORKSIE_SPINE.md` — this file. Product identity, doctrine, stack.
 - `docs/PRD.md` — product requirements at the user-flow level.
 - `docs/DOMAIN_MODEL.md` — entities, relationships, lifecycle.
+- `docs/COMPETITIVE_POSITIONING.md` — market gap, buyer-facing language,
+  MVP wedge, product boundaries, and moat strategy.
 - `docs/TECH_STACK_DECISION.md` — stack rationale and trade-offs.
 - `docs/OFFLINE_FIRST_ARCHITECTURE.md` — sync model, conflict rules.
 - `docs/ONBOARDING_FLOWS.md` — contractor and tenant onboarding.

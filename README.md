@@ -17,6 +17,7 @@ safety, documentation, proof-of-work, and 1099 payout.
 | [`docs/WORKSIE_SPINE.md`](docs/WORKSIE_SPINE.md) | Product identity, doctrine, canonical stack |
 | [`docs/PRD.md`](docs/PRD.md) | Personas, top-level flows, v1 scope |
 | [`docs/DOMAIN_MODEL.md`](docs/DOMAIN_MODEL.md) | Entities, relationships, hard rules |
+| [`docs/COMPETITIVE_POSITIONING.md`](docs/COMPETITIVE_POSITIONING.md) | Market gap, positioning, MVP wedge, moat strategy |
 | [`docs/TECH_STACK_DECISION.md`](docs/TECH_STACK_DECISION.md) | Why Supabase + Next.js + Expo + PowerSync |
 | [`docs/OFFLINE_FIRST_ARCHITECTURE.md`](docs/OFFLINE_FIRST_ARCHITECTURE.md) | Sync classes, conflict rules, upload queue |
 | [`docs/ONBOARDING_FLOWS.md`](docs/ONBOARDING_FLOWS.md) | Tenant and contractor onboarding, compliance gate |

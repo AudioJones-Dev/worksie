@@ -14,6 +14,20 @@ and `DOMAIN_MODEL.md` (entities).
 - **Customer** — receives the service. Limited surface area in v1: signs a
   completion form, may view a job summary.
 
+## Product Focus
+
+Worksie helps field teams prove a job is complete, approved, and ready to
+bill. The MVP focuses on documentation-heavy contractor and inspection
+workflows where incomplete proof delays payment, approvals, compliance, or
+customer acceptance. Priority verticals are restoration contractors, commercial
+inspection teams, specialty contractors, and maintenance or service teams with
+approval-heavy workflows.
+
+Every v1 feature must support at least one readiness outcome: capture what
+happened, validate documentation completeness, route approval, determine billing
+readiness, create audit evidence, or trigger downstream systems. Features that
+do not support one of those outcomes are deferred.
+
 ## Top-Level Flows (v1)
 
 1. **Business configuration.** Operator defines services, required gear,
@@ -48,6 +62,11 @@ and `DOMAIN_MODEL.md` (entities).
 
 ## Explicitly Out of Scope (v1)
 
+- Lead pipelines, sales CRM, and marketing automation. Worksie integrates with
+  CRM systems rather than replacing them.
+- Full accounting, payroll, and inventory. Worksie determines readiness and
+  emits downstream triggers, but accounting systems remain the ledger.
+- Dispatch as a core MVP feature beyond assignment and notification hooks.
 - Real-time chat. Notifications only.
 - 3D LiDAR scanning. Reserved for later.
 - AI-generated narrative reports. Reserved for later.
