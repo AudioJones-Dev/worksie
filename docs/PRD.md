@@ -3,6 +3,92 @@
 User-flow level product requirements. Pairs with `WORKSIE_SPINE.md` (identity)
 and `DOMAIN_MODEL.md` (entities).
 
+## Competitive Positioning & Product Boundary Addendum
+
+Worksie's defensible product position is: **Worksie turns every field job
+into a validated, billable, approval-ready record — automatically.**
+
+Worksie is **not** a CRM, scheduling platform, accounting tool, generic form
+builder, or photo documentation app. It is the operational readiness layer
+for field-service and contractor operations: the system of record for whether
+field work has the required proof, context, approvals, and automation signals
+needed before downstream business systems can act on it.
+
+The core question Worksie answers is:
+
+> Is this field job complete, documented, approved, and ready to bill?
+
+### Product Boundary
+
+Worksie should own the job-completion evidence and readiness workflow, not
+the entire contractor business stack. Specifically, Worksie owns:
+
+- Field proof capture: photos, signatures, checklists, forms, GPS/context,
+  and other proof artifacts tied directly to a work order.
+- Dynamic submission workflows: tenant-specific requirements that change by
+  service type, job status, customer requirement, compliance rule, or other
+  operational condition.
+- Readiness scoring: explicit completeness and exception signals that show
+  whether a job can move forward.
+- Approval routing: review, rejection, resubmission, and approval handoffs
+  for documented field work.
+- Billing readiness: evidence that a job has the documentation and approvals
+  needed before invoicing, payout, customer acceptance, or compliance review.
+- Operational memory: historical completeness data, approval patterns,
+  workflow exceptions, and tenant-specific rules that improve future job
+  execution.
+- Downstream automation triggers: events and payloads that notify or update
+  CRM, accounting, scheduling, compliance, storage, and reporting systems
+  once field work is ready.
+
+Worksie should integrate with CRM, accounting, scheduling, storage, and other
+field-service systems rather than replacing them. Those systems remain the
+right places for sales pipeline, customer relationship management, calendar
+optimization, payroll, inventory, marketing automation, general ledger, and
+broad financial reporting. Worksie sits between field execution and those
+systems, validating that work is complete enough to move forward.
+
+### Initial MVP Wedge
+
+The MVP should focus on documentation-heavy contractor or inspection workflows
+where incomplete field documentation delays payment, approval, compliance, or
+customer acceptance. Good early wedges include jobs that require structured
+proof-of-work, multiple required artifacts, customer or back-office sign-off,
+and clear consequences when documentation is missing or rejected.
+
+The MVP should not expand into scheduling, payroll, inventory management,
+marketing automation, or full CRM/accounting replacement. Work assignment,
+customer records, invoices, and other downstream objects may be referenced or
+synced only as needed to support capture, validation, approval, billing
+readiness, audit evidence, or automation triggers.
+
+### Long-Term Moat
+
+Worksie's long-term moat should come from:
+
+- Operational memory across completed and rejected jobs.
+- Tenant-specific workflow rules that encode how each business proves work.
+- Completeness data that identifies missing evidence, recurring exceptions,
+  and readiness risk before back-office review.
+- Approval patterns that help route, prioritize, and improve future
+  submissions.
+- Integration depth with the systems that receive ready-to-bill or
+  ready-to-approve work.
+
+### MVP Feature Decision Rule
+
+Every MVP feature must directly support at least one of these outcomes:
+
+- Capture required field evidence.
+- Validate job completeness.
+- Route or record approval.
+- Establish billing readiness.
+- Preserve audit evidence.
+- Trigger downstream automation.
+
+If a proposed MVP feature does not support one of those outcomes, it belongs
+outside the MVP.
+
 ## Personas
 
 - **Operator** — owns or runs the business. Configures services, rules,
