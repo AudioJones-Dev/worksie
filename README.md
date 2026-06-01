@@ -5,7 +5,8 @@ Worksie models what a business is *capable of performing* and turns that
 model into field-ready execution: onboarding, dispatch, work orders,
 safety, documentation, proof-of-work, and 1099 payout.
 
-> **Status:** Phase 1 — monorepo scaffold. No domain features implemented yet.
+> **Status:** Phase 2 — canonical Drizzle schema and Supabase migrations
+> have landed. Phase 3 is the auth, RLS, and tenancy boundary foundation.
 > See [`docs/WORKSIE_SPINE.md`](docs/WORKSIE_SPINE.md) for product identity
 > and [`docs/FIREBASE_MIGRATION_PLAN.md`](docs/FIREBASE_MIGRATION_PLAN.md)
 > for the architecture migration.
@@ -49,7 +50,7 @@ worksie/
 │   ├── web/                 # Next.js App Router + TypeScript + Tailwind
 │   └── mobile/              # Expo + Expo Router + TypeScript
 ├── packages/
-│   ├── db/                  # Drizzle schema + client (placeholder in Phase 1)
+│   ├── db/                  # Drizzle schema + client
 │   ├── domain/              # Shared entity names, work-order states, sync classes
 │   ├── types/               # Shared utility types
 │   ├── ui/                  # Shared design tokens / primitives (placeholder)
@@ -83,7 +84,7 @@ pnpm install
 pnpm lint        # lint all packages
 pnpm typecheck   # typecheck all packages
 pnpm build       # build all packages
-pnpm test        # run tests (no-op in Phase 1)
+pnpm test        # run tests when package test scripts are present
 pnpm dev         # run dev servers
 ```
 
@@ -94,8 +95,10 @@ supabase start         # boot local Postgres + Studio
 supabase db reset      # apply migrations from supabase/migrations/
 ```
 
-Phase 1 ships with no migrations. Phase 2 generates the first schema
-from `packages/db` via `drizzle-kit generate`.
+Phase 2 includes the first schema migration and the RLS / audit migration.
+Use Supabase CLI as the migration runner for local resets and applied
+database state. `drizzle-kit generate` remains the schema-generation tool for
+new Drizzle-authored schema changes.
 
 ### Apps
 
@@ -112,13 +115,13 @@ The web app exposes `GET /healthz` returning `{ "ok": true, "phase": "1" }`.
 | Phase | Scope |
 |---|---|
 | Phase 0 | Canonical docs + Firebase retirement decision (merged in `main` at `c5325f9`) |
-| **Phase 1** | **Monorepo scaffold, CI, doc relocation, Firebase artifact removal — this branch** |
-| Phase 2 | Ontology + Drizzle schema implementation + first real migrations |
+| Phase 1 | Monorepo scaffold, CI, doc relocation, Firebase artifact removal |
+| **Phase 2** | **Ontology + Drizzle schema implementation + first real migrations — landed in PR #23** |
 | Phase 3 | Auth + RLS + tenancy |
 | Phase 4 | First domain slice (Work Orders read-only) |
 
 Do not implement domain features (work orders, payouts, compliance, etc.)
-until Phase 2 lands.
+until the Phase 3 auth, RLS, and tenancy boundary is in place.
 
 ## Contributing
 

@@ -17,9 +17,9 @@ path. Surface visual progress in places that render on mobile.
    on GitHub mobile:
    - Capture with Playwright at desktop (`1440x1200`) **and** iPhone
      (`390x844`) viewports.
-   - Commit the PNGs to `Worksie/docs/screenshots/<pr-or-branch>/` on the
+   - Commit the PNGs to `docs/screenshots/<pr-or-branch>/` on the
      branch and reference them in the PR body / comment using raw GitHub URLs
-     or relative markdown links (`![desktop](Worksie/docs/screenshots/.../desktop.png)`).
+     or relative markdown links (`![desktop](docs/screenshots/.../desktop.png)`).
    - Include hover, error, and empty states when relevant to the change.
 3. **Prefer the Vercel preview URL when possible.** Vercel auto-deploys a
    preview for every PR. Grab the preview URL from the PR's checks (the
@@ -40,12 +40,16 @@ path. Surface visual progress in places that render on mobile.
 
 ### Required commands before declaring done
 
-Run from `Worksie/`:
+Run from the repository root:
 
 ```bash
-npm run lint
-npm run build
+pnpm lint
+pnpm build
 ```
+
+If the local `pnpm` shim is unavailable or broken, `npm run lint` and
+`npm run build` are acceptable validation fallbacks because they delegate to
+the same root Turbo scripts. Do not use npm to install dependencies.
 
 If you changed UI, also run a Playwright screenshot pass at both viewports
 and follow rule 2 above.
@@ -61,10 +65,12 @@ and follow rule 2 above.
 
 ## Project layout
 
-- `Worksie/` — Vite + React app (the deployable). All `npm` scripts live here.
-- `Worksie/docs/` — Project documentation, including screenshots for PRs.
-- `Worksie/prompts/` — Reusable prompt templates.
-- `config/` — Repo-level configuration.
+- `apps/web/` — Next.js web admin app.
+- `apps/mobile/` — Expo mobile field app.
+- `packages/` — Shared config, domain, database, types, and UI packages.
+- `docs/` — Project documentation, including screenshots for PRs.
+- `prompts/` — Reusable prompt templates.
+- `supabase/` — Supabase config and migrations.
 
 ## Safety
 
