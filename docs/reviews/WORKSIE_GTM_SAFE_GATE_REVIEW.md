@@ -158,8 +158,10 @@ Audio approval is required for:
 
 Codex may continue safely with:
 
-- Drafting a PR #31 code-review checklist.
-- Drafting a PR #29/#30 consolidation checklist.
+- Using `docs/reviews/WORKSIE_PHASE_3_REVIEW_CHECKLIST.md` to review PR #31
+  before PR #26.
+- Using `docs/reviews/WORKSIE_POSITIONING_CONSOLIDATION_CHECKLIST.md` to
+  consolidate PR #29/#30 without duplicating doctrine.
 - Updating PR #33 with this review and validation results.
 - Running local validation.
 - Watching CI for PR #33.
@@ -168,3 +170,5 @@ Codex may continue safely with:
 
 - v0.1 | 2026-06-02 | Added open PR triage, positioning recommendation,
   Phase 3 readiness brief, pilot scenario options, and future-work rules.
+- v0.2 | 2026-06-02 | Linked concrete Phase 3 and positioning consolidation
+  checklists for the next safe-gate reviews.
