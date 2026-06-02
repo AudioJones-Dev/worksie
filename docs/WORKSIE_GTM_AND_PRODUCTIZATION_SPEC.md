@@ -46,6 +46,8 @@ client pilot or paid launch.
   `G:\AJ-INTERNAL\AJ-DIGITAL-VAULT\08-KNOWLEDGE\DOCTRINE\ONTOLOGY\CANONICAL_REGISTRY_ENTRIES.md`
 - Project register:
   `G:\AJ-INTERNAL\AJ-DIGITAL-VAULT\00-CONTROL\PROJECT_REGISTER.md` entry 11
+- Repo GTM project plan:
+  [`docs/WORKSIE_GTM_PROJECT_PLAN.md`](WORKSIE_GTM_PROJECT_PLAN.md)
 - Repo notes:
   `G:\AJ-INTERNAL\AJ-DIGITAL-VAULT\02-PROJECTS\WORKSIE_NOTES.md`
 - Implementation repo:
@@ -335,6 +337,9 @@ Any Worksie build dispatch must cite:
 The registry remains the source of truth for axis values.
 
 ## 30. Next Actions
+
+Use [`docs/WORKSIE_GTM_PROJECT_PLAN.md`](WORKSIE_GTM_PROJECT_PLAN.md) for the
+project-manager sequence, safe gates, hold gates, and GTM backlog.
 
 1. Review open Worksie PRs for stale/conflicting scope before any merge work.
 2. Prepare a narrow Phase 3 readiness brief focused on PR #31 and
