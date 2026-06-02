@@ -4,8 +4,9 @@ status: draft
 version: v0.1
 owner: AJ Digital LLC / Audio Jones
 related_spec: docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md
+safe_gate_review: docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-06-02
 ---
 
 # Worksie - GTM Project Plan
@@ -270,6 +271,12 @@ Exit gate:
 | 6 | Draft first domain-slice implementation plan | Safe after scenario | Codex | Build plan |
 | 7 | Approve implementation | Hold | Audio | Proceed gate |
 
+Current safe-gate implementation reference:
+
+- `docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md` records the open PR triage,
+  PR #29/#30 positioning comparison, PR #31/#26 Phase 3 readiness brief,
+  pilot scenario options, and hold gates for future work.
+
 ## 6. Project Manager Operating Rules
 
 - Keep one active implementation workstream at a time.
@@ -317,3 +324,5 @@ Until then, Worksie remains an internal prototype with a paid-product target.
 
 - v0.1 | 2026-06-01 | Initial PM plan created to govern Worksie GTM
   execution, safe gates, hold gates, and next backlog.
+- v0.2 | 2026-06-02 | Linked the safe-gate review artifact for PR triage,
+  positioning overlap, Phase 3 readiness, and future implementation control.

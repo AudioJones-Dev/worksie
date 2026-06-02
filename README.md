@@ -20,6 +20,7 @@ safety, documentation, proof-of-work, and 1099 payout.
 | [`docs/DOMAIN_MODEL.md`](docs/DOMAIN_MODEL.md) | Entities, relationships, hard rules |
 | [`docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md`](docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md) | GTM/productization classification and readiness gates |
 | [`docs/WORKSIE_GTM_PROJECT_PLAN.md`](docs/WORKSIE_GTM_PROJECT_PLAN.md) | Project-manager plan, safe gates, hold gates, GTM backlog |
+| [`docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md`](docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md) | Open PR triage, positioning overlap, Phase 3 readiness, future-work gates |
 | [`docs/TECH_STACK_DECISION.md`](docs/TECH_STACK_DECISION.md) | Why Supabase + Next.js + Expo + PowerSync |
 | [`docs/OFFLINE_FIRST_ARCHITECTURE.md`](docs/OFFLINE_FIRST_ARCHITECTURE.md) | Sync classes, conflict rules, upload queue |
 | [`docs/ONBOARDING_FLOWS.md`](docs/ONBOARDING_FLOWS.md) | Tenant and contractor onboarding, compliance gate |
