@@ -34,47 +34,6 @@ $$;
 REVOKE ALL ON FUNCTION public.worksie_current_tenant_ids() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.worksie_current_tenant_ids() TO authenticated;
 
--- Tenants the current auth user ADMINISTERS (operator / back_office). Write
--- access to config, financial and compliance-definition tables is gated on
--- this set; field roles (contractor) get read access plus narrowly-scoped
--- writes on operational tables only.
-CREATE OR REPLACE FUNCTION public.worksie_admin_tenant_ids()
-RETURNS SETOF uuid
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT m.tenant_id
-  FROM memberships m
-  INNER JOIN users u ON u.id = m.user_id
-  WHERE u.auth_user_id = auth.uid()
-    AND m.status = 'active'
-    AND m.role IN ('operator', 'back_office')
-$$;
-
-REVOKE ALL ON FUNCTION public.worksie_admin_tenant_ids() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.worksie_admin_tenant_ids() TO authenticated;
-
--- The current auth user's own active membership ids (for self-service rows
--- such as a contractor's own documents and safety acknowledgements).
-CREATE OR REPLACE FUNCTION public.worksie_current_membership_ids()
-RETURNS SETOF uuid
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT m.id
-  FROM memberships m
-  INNER JOIN users u ON u.id = m.user_id
-  WHERE u.auth_user_id = auth.uid()
-    AND m.status = 'active'
-$$;
-
-REVOKE ALL ON FUNCTION public.worksie_current_membership_ids() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.worksie_current_membership_ids() TO authenticated;
-
 --------------------------------------------------------------------------
 -- 2. Enable RLS on every canonical table.
 --------------------------------------------------------------------------
@@ -105,92 +64,46 @@ ALTER TABLE public.payout_lines              ENABLE ROW LEVEL SECURITY;
 --------------------------------------------------------------------------
 -- 3. Tenant isolation policies (tables that carry tenant_id).
 --------------------------------------------------------------------------
--- Every row must belong to a tenant the current user is an active member of.
--- On top of that tenant boundary we split read from write by role:
---   * Config / financial / compliance-definition tables  → read: any member,
---     write (INSERT/UPDATE/DELETE): admins only (operator | back_office).
---   * Operational field tables (work orders, checklists, proof of work,
---     sign-offs)                                          → read+write: any member.
---   * Self-service compliance rows (a contractor's own documents and safety
---     acknowledgements)                                   → write: the owning
---     contractor or an admin; read: any member.
--- Postgres OR-combines permissive policies, so a FOR-ALL admin/owner write
--- policy plus a FOR-SELECT member policy yields member-read + scoped-write.
--- The bootstrap path (first tenant + membership) runs as service_role, which
+-- One uniform policy per table: the row's tenant_id must be one the
+-- current user has an active membership in. The bootstrap path (creating
+-- the first tenant + membership) is expected to run as service_role, which
 -- bypasses RLS by Supabase convention.
 
--- Config / financial / compliance-definition tables: member read, admin write.
-CREATE POLICY "member_read" ON public.tenants
-  FOR SELECT TO authenticated
-  USING (id IN (SELECT public.worksie_current_tenant_ids()));
-CREATE POLICY "admin_write" ON public.tenants
+CREATE POLICY "tenant_isolation" ON public.tenants
   FOR ALL TO authenticated
-  USING (id IN (SELECT public.worksie_admin_tenant_ids()))
-  WITH CHECK (id IN (SELECT public.worksie_admin_tenant_ids()));
+  USING (id IN (SELECT public.worksie_current_tenant_ids()))
+  WITH CHECK (id IN (SELECT public.worksie_current_tenant_ids()));
 
-CREATE POLICY "member_read" ON public.business_profiles
-  FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
-CREATE POLICY "admin_write" ON public.business_profiles
+CREATE POLICY "tenant_isolation" ON public.business_profiles
   FOR ALL TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_admin_tenant_ids()))
-  WITH CHECK (tenant_id IN (SELECT public.worksie_admin_tenant_ids()));
+  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
+  WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
-CREATE POLICY "member_read" ON public.service_definitions
-  FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
-CREATE POLICY "admin_write" ON public.service_definitions
+CREATE POLICY "tenant_isolation" ON public.service_definitions
   FOR ALL TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_admin_tenant_ids()))
-  WITH CHECK (tenant_id IN (SELECT public.worksie_admin_tenant_ids()));
+  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
+  WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
-CREATE POLICY "member_read" ON public.document_types
-  FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
-CREATE POLICY "admin_write" ON public.document_types
+CREATE POLICY "tenant_isolation" ON public.document_types
   FOR ALL TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_admin_tenant_ids()))
-  WITH CHECK (tenant_id IN (SELECT public.worksie_admin_tenant_ids()));
+  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
+  WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
--- contractor_documents: a contractor manages their own; admins manage all.
-CREATE POLICY "member_read" ON public.contractor_documents
-  FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
-CREATE POLICY "owner_or_admin_write" ON public.contractor_documents
+CREATE POLICY "tenant_isolation" ON public.contractor_documents
   FOR ALL TO authenticated
-  USING (
-    tenant_id IN (SELECT public.worksie_admin_tenant_ids())
-    OR contractor_membership_id IN (SELECT public.worksie_current_membership_ids())
-  )
-  WITH CHECK (
-    tenant_id IN (SELECT public.worksie_admin_tenant_ids())
-    OR contractor_membership_id IN (SELECT public.worksie_current_membership_ids())
-  );
+  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
+  WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
-CREATE POLICY "member_read" ON public.safety_packs
-  FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
-CREATE POLICY "admin_write" ON public.safety_packs
+CREATE POLICY "tenant_isolation" ON public.safety_packs
   FOR ALL TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_admin_tenant_ids()))
-  WITH CHECK (tenant_id IN (SELECT public.worksie_admin_tenant_ids()));
+  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
+  WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
--- safety_acknowledgements: a contractor signs their own; admins manage all.
-CREATE POLICY "member_read" ON public.safety_acknowledgements
-  FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
-CREATE POLICY "owner_or_admin_write" ON public.safety_acknowledgements
+CREATE POLICY "tenant_isolation" ON public.safety_acknowledgements
   FOR ALL TO authenticated
-  USING (
-    tenant_id IN (SELECT public.worksie_admin_tenant_ids())
-    OR contractor_membership_id IN (SELECT public.worksie_current_membership_ids())
-  )
-  WITH CHECK (
-    tenant_id IN (SELECT public.worksie_admin_tenant_ids())
-    OR contractor_membership_id IN (SELECT public.worksie_current_membership_ids())
-  );
+  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
+  WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
--- Operational field tables: read + write for any active member.
 CREATE POLICY "tenant_isolation" ON public.work_orders
   FOR ALL TO authenticated
   USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
@@ -211,13 +124,10 @@ CREATE POLICY "tenant_isolation_insert" ON public.work_order_events
   FOR INSERT TO authenticated
   WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
-CREATE POLICY "member_read" ON public.checklist_templates
-  FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
-CREATE POLICY "admin_write" ON public.checklist_templates
+CREATE POLICY "tenant_isolation" ON public.checklist_templates
   FOR ALL TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_admin_tenant_ids()))
-  WITH CHECK (tenant_id IN (SELECT public.worksie_admin_tenant_ids()));
+  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
+  WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
 CREATE POLICY "tenant_isolation" ON public.checklist_instances
   FOR ALL TO authenticated
@@ -234,44 +144,30 @@ CREATE POLICY "tenant_isolation" ON public.proof_of_work_artifacts
   USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
   WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
-CREATE POLICY "member_read" ON public.customers
-  FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
-CREATE POLICY "admin_write" ON public.customers
+CREATE POLICY "tenant_isolation" ON public.customers
   FOR ALL TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_admin_tenant_ids()))
-  WITH CHECK (tenant_id IN (SELECT public.worksie_admin_tenant_ids()));
+  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
+  WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
 CREATE POLICY "tenant_isolation" ON public.customer_signoffs
   FOR ALL TO authenticated
   USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
   WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
--- Financial tables: member read, admin write. (Period-scoped payout-line
--- immutability after approval is layered on in Phase 3.)
-CREATE POLICY "member_read" ON public.payout_rules
-  FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
-CREATE POLICY "admin_write" ON public.payout_rules
+CREATE POLICY "tenant_isolation" ON public.payout_rules
   FOR ALL TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_admin_tenant_ids()))
-  WITH CHECK (tenant_id IN (SELECT public.worksie_admin_tenant_ids()));
+  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
+  WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
-CREATE POLICY "member_read" ON public.payout_periods
-  FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
-CREATE POLICY "admin_write" ON public.payout_periods
+CREATE POLICY "tenant_isolation" ON public.payout_periods
   FOR ALL TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_admin_tenant_ids()))
-  WITH CHECK (tenant_id IN (SELECT public.worksie_admin_tenant_ids()));
+  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
+  WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
-CREATE POLICY "member_read" ON public.payout_lines
-  FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
-CREATE POLICY "admin_write" ON public.payout_lines
+CREATE POLICY "tenant_isolation" ON public.payout_lines
   FOR ALL TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_admin_tenant_ids()))
-  WITH CHECK (tenant_id IN (SELECT public.worksie_admin_tenant_ids()));
+  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
+  WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
 --------------------------------------------------------------------------
 -- 4. Identity-table policies (users, memberships).
@@ -299,45 +195,23 @@ CREATE POLICY "user_self_update" ON public.users
   USING (auth_user_id = auth.uid())
   WITH CHECK (auth_user_id = auth.uid());
 
--- memberships: any member can see the roster of their tenant; only admins can
--- invite/change/remove members. (Invitee self-activation is handled
--- server-side via service_role in Phase 3.)
-CREATE POLICY "member_read" ON public.memberships
-  FOR SELECT TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
-CREATE POLICY "admin_write" ON public.memberships
+-- memberships: same tenant isolation as the rest.
+CREATE POLICY "tenant_isolation" ON public.memberships
   FOR ALL TO authenticated
-  USING (tenant_id IN (SELECT public.worksie_admin_tenant_ids()))
-  WITH CHECK (tenant_id IN (SELECT public.worksie_admin_tenant_ids()));
+  USING (tenant_id IN (SELECT public.worksie_current_tenant_ids()))
+  WITH CHECK (tenant_id IN (SELECT public.worksie_current_tenant_ids()));
 
 --------------------------------------------------------------------------
 -- 5. Append-only enforcement for work_order_events.
 --------------------------------------------------------------------------
 -- DOMAIN_MODEL.md Hard Rule #5: "WorkOrderEvent is append-only — never
 -- updated, never deleted, not even on cancelled or voided." Enforce in DB.
---
--- Caveat: the FKs on this table use ON DELETE CASCADE (tenant_id, work_order_id)
--- and ON DELETE SET NULL (actor). An unconditional block would make those
--- referential actions impossible, so deleting a tenant or work order — or even
--- deleting a user referenced as an actor — would always fail once any event
--- exists. We only block *direct* application mutations: when the statement
--- originates from a foreign-key referential action it runs nested inside an RI
--- trigger, so pg_trigger_depth() > 1 and we let it through.
 
 CREATE OR REPLACE FUNCTION public.worksie_block_work_order_event_mutation()
 RETURNS trigger
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  -- Depth > 1 means we were reached via a cascade / SET NULL referential
-  -- action (nested under the parent table's RI trigger); allow it.
-  IF pg_trigger_depth() > 1 THEN
-    IF TG_OP = 'DELETE' THEN
-      RETURN OLD;
-    END IF;
-    RETURN NEW;
-  END IF;
-
   RAISE EXCEPTION 'work_order_events is append-only (canonical audit log)';
 END;
 $$;
