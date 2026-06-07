@@ -15,7 +15,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit",
     "generate": "drizzle-kit generate",
-    "migrate": "echo 'Phase 1: no migrations yet. Use supabase db reset once Phase 2 schema lands.'",
+    "migrate": "echo 'Use Supabase CLI as the migration runner: supabase db reset applies supabase/migrations/.'",
     "clean": "rm -rf dist .turbo node_modules"
   },
   "dependencies": {
