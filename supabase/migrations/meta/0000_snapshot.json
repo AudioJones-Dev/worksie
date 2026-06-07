@@ -1,5 +1,5 @@
 {
-  "id": "d0299a3e-3a97-4f33-8982-fcf39dd2611d",
+  "id": "00008010-59e9-45ec-900c-ac86d6f1f1f8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -69,6 +69,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "business_profiles_default_safety_pack_idx": {
+          "name": "business_profiles_default_safety_pack_idx",
+          "columns": [
+            {
+              "expression": "default_safety_pack_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -83,19 +98,6 @@
             "id"
           ],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "business_profiles_default_safety_pack_id_safety_packs_id_fk": {
-          "name": "business_profiles_default_safety_pack_id_safety_packs_id_fk",
-          "tableFrom": "business_profiles",
-          "tableTo": "safety_packs",
-          "columnsFrom": [
-            "default_safety_pack_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -188,27 +190,31 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "checklist_instances_work_order_id_work_orders_id_fk": {
-          "name": "checklist_instances_work_order_id_work_orders_id_fk",
+        "checklist_instances_work_order_fk": {
+          "name": "checklist_instances_work_order_fk",
           "tableFrom": "checklist_instances",
           "tableTo": "work_orders",
           "columnsFrom": [
+            "tenant_id",
             "work_order_id"
           ],
           "columnsTo": [
+            "tenant_id",
             "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "checklist_instances_checklist_template_id_checklist_templates_id_fk": {
-          "name": "checklist_instances_checklist_template_id_checklist_templates_id_fk",
+        "checklist_instances_template_fk": {
+          "name": "checklist_instances_template_fk",
           "tableFrom": "checklist_instances",
           "tableTo": "checklist_templates",
           "columnsFrom": [
+            "tenant_id",
             "checklist_template_id"
           ],
           "columnsTo": [
+            "tenant_id",
             "id"
           ],
           "onDelete": "restrict",
@@ -216,7 +222,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "checklist_instances_tenant_id_id_unique": {
+          "name": "checklist_instances_tenant_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -299,6 +314,21 @@
           "method": "btree",
           "with": {}
         },
+        "checklist_steps_completed_by_idx": {
+          "name": "checklist_steps_completed_by_idx",
+          "columns": [
+            {
+              "expression": "completed_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "checklist_steps_instance_ordinal_idx": {
           "name": "checklist_steps_instance_ordinal_idx",
           "columns": [
@@ -335,19 +365,6 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "checklist_steps_checklist_instance_id_checklist_instances_id_fk": {
-          "name": "checklist_steps_checklist_instance_id_checklist_instances_id_fk",
-          "tableFrom": "checklist_steps",
-          "tableTo": "checklist_instances",
-          "columnsFrom": [
-            "checklist_instance_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "checklist_steps_completed_by_users_id_fk": {
           "name": "checklist_steps_completed_by_users_id_fk",
           "tableFrom": "checklist_steps",
@@ -360,10 +377,34 @@
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
+        },
+        "checklist_steps_instance_fk": {
+          "name": "checklist_steps_instance_fk",
+          "tableFrom": "checklist_steps",
+          "tableTo": "checklist_instances",
+          "columnsFrom": [
+            "tenant_id",
+            "checklist_instance_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "checklist_steps_tenant_id_id_unique": {
+          "name": "checklist_steps_tenant_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -439,7 +480,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "checklist_templates_tenant_id_id_unique": {
+          "name": "checklist_templates_tenant_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -565,6 +615,21 @@
           "method": "btree",
           "with": {}
         },
+        "contractor_documents_verified_by_idx": {
+          "name": "contractor_documents_verified_by_idx",
+          "columns": [
+            {
+              "expression": "verified_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "contractor_documents_expires_idx": {
           "name": "contractor_documents_expires_idx",
           "columns": [
@@ -595,32 +660,6 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "contractor_documents_contractor_membership_id_memberships_id_fk": {
-          "name": "contractor_documents_contractor_membership_id_memberships_id_fk",
-          "tableFrom": "contractor_documents",
-          "tableTo": "memberships",
-          "columnsFrom": [
-            "contractor_membership_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "contractor_documents_document_type_id_document_types_id_fk": {
-          "name": "contractor_documents_document_type_id_document_types_id_fk",
-          "tableFrom": "contractor_documents",
-          "tableTo": "document_types",
-          "columnsFrom": [
-            "document_type_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
         "contractor_documents_verified_by_users_id_fk": {
           "name": "contractor_documents_verified_by_users_id_fk",
           "tableFrom": "contractor_documents",
@@ -632,6 +671,36 @@
             "id"
           ],
           "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "contractor_docs_membership_fk": {
+          "name": "contractor_docs_membership_fk",
+          "tableFrom": "contractor_documents",
+          "tableTo": "memberships",
+          "columnsFrom": [
+            "tenant_id",
+            "contractor_membership_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "contractor_docs_doc_type_fk": {
+          "name": "contractor_docs_doc_type_fk",
+          "tableFrom": "contractor_documents",
+          "tableTo": "document_types",
+          "columnsFrom": [
+            "tenant_id",
+            "document_type_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
@@ -736,14 +805,16 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "customer_signoffs_work_order_id_work_orders_id_fk": {
-          "name": "customer_signoffs_work_order_id_work_orders_id_fk",
+        "customer_signoffs_work_order_fk": {
+          "name": "customer_signoffs_work_order_fk",
           "tableFrom": "customer_signoffs",
           "tableTo": "work_orders",
           "columnsFrom": [
+            "tenant_id",
             "work_order_id"
           ],
           "columnsTo": [
+            "tenant_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -838,7 +909,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "customers_tenant_id_id_unique": {
+          "name": "customers_tenant_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -948,7 +1028,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "document_types_tenant_id_id_unique": {
+          "name": "document_types_tenant_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {
         "document_types_applies_to_check": {
@@ -1086,7 +1175,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "memberships_tenant_id_id_unique": {
+          "name": "memberships_tenant_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -1212,6 +1310,36 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "payout_lines_line_item_idx": {
+          "name": "payout_lines_line_item_idx",
+          "columns": [
+            {
+              "expression": "work_order_line_item_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "payout_lines_computed_from_idx": {
+          "name": "payout_lines_computed_from_idx",
+          "columns": [
+            {
+              "expression": "computed_from",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -1228,69 +1356,49 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "payout_lines_payout_period_id_payout_periods_id_fk": {
-          "name": "payout_lines_payout_period_id_payout_periods_id_fk",
+        "payout_lines_period_fk": {
+          "name": "payout_lines_period_fk",
           "tableFrom": "payout_lines",
           "tableTo": "payout_periods",
           "columnsFrom": [
+            "tenant_id",
             "payout_period_id"
           ],
           "columnsTo": [
+            "tenant_id",
             "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "payout_lines_contractor_membership_id_memberships_id_fk": {
-          "name": "payout_lines_contractor_membership_id_memberships_id_fk",
+        "payout_lines_membership_fk": {
+          "name": "payout_lines_membership_fk",
           "tableFrom": "payout_lines",
           "tableTo": "memberships",
           "columnsFrom": [
+            "tenant_id",
             "contractor_membership_id"
           ],
           "columnsTo": [
+            "tenant_id",
             "id"
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "payout_lines_work_order_id_work_orders_id_fk": {
-          "name": "payout_lines_work_order_id_work_orders_id_fk",
+        "payout_lines_work_order_fk": {
+          "name": "payout_lines_work_order_fk",
           "tableFrom": "payout_lines",
           "tableTo": "work_orders",
           "columnsFrom": [
+            "tenant_id",
             "work_order_id"
           ],
           "columnsTo": [
+            "tenant_id",
             "id"
           ],
           "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "payout_lines_work_order_line_item_id_work_order_line_items_id_fk": {
-          "name": "payout_lines_work_order_line_item_id_work_order_line_items_id_fk",
-          "tableFrom": "payout_lines",
-          "tableTo": "work_order_line_items",
-          "columnsFrom": [
-            "work_order_line_item_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "payout_lines_computed_from_payout_rules_id_fk": {
-          "name": "payout_lines_computed_from_payout_rules_id_fk",
-          "tableFrom": "payout_lines",
-          "tableTo": "payout_rules",
-          "columnsFrom": [
-            "computed_from"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1417,7 +1525,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "payout_periods_tenant_id_id_unique": {
+          "name": "payout_periods_tenant_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -1521,7 +1638,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "payout_rules_tenant_id_id_unique": {
+          "name": "payout_rules_tenant_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -1631,6 +1757,21 @@
           "method": "btree",
           "with": {}
         },
+        "proof_of_work_artifacts_captured_by_idx": {
+          "name": "proof_of_work_artifacts_captured_by_idx",
+          "columns": [
+            {
+              "expression": "captured_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "proof_of_work_artifacts_step_idx": {
           "name": "proof_of_work_artifacts_step_idx",
           "columns": [
@@ -1661,32 +1802,6 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "proof_of_work_artifacts_work_order_id_work_orders_id_fk": {
-          "name": "proof_of_work_artifacts_work_order_id_work_orders_id_fk",
-          "tableFrom": "proof_of_work_artifacts",
-          "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "proof_of_work_artifacts_checklist_step_id_checklist_steps_id_fk": {
-          "name": "proof_of_work_artifacts_checklist_step_id_checklist_steps_id_fk",
-          "tableFrom": "proof_of_work_artifacts",
-          "tableTo": "checklist_steps",
-          "columnsFrom": [
-            "checklist_step_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
         "proof_of_work_artifacts_captured_by_users_id_fk": {
           "name": "proof_of_work_artifacts_captured_by_users_id_fk",
           "tableFrom": "proof_of_work_artifacts",
@@ -1698,6 +1813,21 @@
             "id"
           ],
           "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "pow_artifacts_work_order_fk": {
+          "name": "pow_artifacts_work_order_fk",
+          "tableFrom": "proof_of_work_artifacts",
+          "tableTo": "work_orders",
+          "columnsFrom": [
+            "tenant_id",
+            "work_order_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -1838,27 +1968,31 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "safety_acknowledgements_contractor_membership_id_memberships_id_fk": {
-          "name": "safety_acknowledgements_contractor_membership_id_memberships_id_fk",
+        "safety_acks_membership_fk": {
+          "name": "safety_acks_membership_fk",
           "tableFrom": "safety_acknowledgements",
           "tableTo": "memberships",
           "columnsFrom": [
+            "tenant_id",
             "contractor_membership_id"
           ],
           "columnsTo": [
+            "tenant_id",
             "id"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "safety_acknowledgements_safety_pack_id_safety_packs_id_fk": {
-          "name": "safety_acknowledgements_safety_pack_id_safety_packs_id_fk",
+        "safety_acks_pack_fk": {
+          "name": "safety_acks_pack_fk",
           "tableFrom": "safety_acknowledgements",
           "tableTo": "safety_packs",
           "columnsFrom": [
+            "tenant_id",
             "safety_pack_id"
           ],
           "columnsTo": [
+            "tenant_id",
             "id"
           ],
           "onDelete": "restrict",
@@ -1975,7 +2109,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "safety_packs_tenant_id_id_unique": {
+          "name": "safety_packs_tenant_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -2073,6 +2216,36 @@
           "method": "btree",
           "with": {}
         },
+        "service_definitions_default_payout_rule_idx": {
+          "name": "service_definitions_default_payout_rule_idx",
+          "columns": [
+            {
+              "expression": "default_payout_rule_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "service_definitions_checklist_template_idx": {
+          "name": "service_definitions_checklist_template_idx",
+          "columns": [
+            {
+              "expression": "checklist_template_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "service_definitions_tenant_name_unique": {
           "name": "service_definitions_tenant_name_unique",
           "columns": [
@@ -2108,36 +2281,19 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
-        },
-        "service_definitions_default_payout_rule_id_payout_rules_id_fk": {
-          "name": "service_definitions_default_payout_rule_id_payout_rules_id_fk",
-          "tableFrom": "service_definitions",
-          "tableTo": "payout_rules",
-          "columnsFrom": [
-            "default_payout_rule_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "service_definitions_checklist_template_id_checklist_templates_id_fk": {
-          "name": "service_definitions_checklist_template_id_checklist_templates_id_fk",
-          "tableFrom": "service_definitions",
-          "tableTo": "checklist_templates",
-          "columnsFrom": [
-            "checklist_template_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "service_definitions_tenant_id_id_unique": {
+          "name": "service_definitions_tenant_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -2350,6 +2506,21 @@
           "method": "btree",
           "with": {}
         },
+        "work_order_events_actor_idx": {
+          "name": "work_order_events_actor_idx",
+          "columns": [
+            {
+              "expression": "actor",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "work_order_events_work_order_at_idx": {
           "name": "work_order_events_work_order_at_idx",
           "columns": [
@@ -2386,19 +2557,6 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "work_order_events_work_order_id_work_orders_id_fk": {
-          "name": "work_order_events_work_order_id_work_orders_id_fk",
-          "tableFrom": "work_order_events",
-          "tableTo": "work_orders",
-          "columnsFrom": [
-            "work_order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "work_order_events_actor_users_id_fk": {
           "name": "work_order_events_actor_users_id_fk",
           "tableFrom": "work_order_events",
@@ -2410,6 +2568,21 @@
             "id"
           ],
           "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "wo_events_work_order_fk": {
+          "name": "wo_events_work_order_fk",
+          "tableFrom": "work_order_events",
+          "tableTo": "work_orders",
+          "columnsFrom": [
+            "tenant_id",
+            "work_order_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -2533,14 +2706,16 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "work_order_line_items_work_order_id_work_orders_id_fk": {
-          "name": "work_order_line_items_work_order_id_work_orders_id_fk",
+        "wo_line_items_work_order_fk": {
+          "name": "wo_line_items_work_order_fk",
           "tableFrom": "work_order_line_items",
           "tableTo": "work_orders",
           "columnsFrom": [
+            "tenant_id",
             "work_order_id"
           ],
           "columnsTo": [
+            "tenant_id",
             "id"
           ],
           "onDelete": "cascade",
@@ -2548,7 +2723,16 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "work_order_line_items_tenant_id_id_unique": {
+          "name": "work_order_line_items_tenant_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -2715,6 +2899,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "work_orders_created_by_idx": {
+          "name": "work_orders_created_by_idx",
+          "columns": [
+            {
+              "expression": "created_by",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -2731,45 +2930,6 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "work_orders_service_definition_id_service_definitions_id_fk": {
-          "name": "work_orders_service_definition_id_service_definitions_id_fk",
-          "tableFrom": "work_orders",
-          "tableTo": "service_definitions",
-          "columnsFrom": [
-            "service_definition_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "work_orders_customer_id_customers_id_fk": {
-          "name": "work_orders_customer_id_customers_id_fk",
-          "tableFrom": "work_orders",
-          "tableTo": "customers",
-          "columnsFrom": [
-            "customer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "work_orders_assigned_contractor_membership_id_memberships_id_fk": {
-          "name": "work_orders_assigned_contractor_membership_id_memberships_id_fk",
-          "tableFrom": "work_orders",
-          "tableTo": "memberships",
-          "columnsFrom": [
-            "assigned_contractor_membership_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
         "work_orders_created_by_users_id_fk": {
           "name": "work_orders_created_by_users_id_fk",
           "tableFrom": "work_orders",
@@ -2782,10 +2942,49 @@
           ],
           "onDelete": "set null",
           "onUpdate": "no action"
+        },
+        "work_orders_service_def_fk": {
+          "name": "work_orders_service_def_fk",
+          "tableFrom": "work_orders",
+          "tableTo": "service_definitions",
+          "columnsFrom": [
+            "tenant_id",
+            "service_definition_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "work_orders_customer_fk": {
+          "name": "work_orders_customer_fk",
+          "tableFrom": "work_orders",
+          "tableTo": "customers",
+          "columnsFrom": [
+            "tenant_id",
+            "customer_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "work_orders_tenant_id_id_unique": {
+          "name": "work_orders_tenant_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
