@@ -6,6 +6,13 @@
 //   - tenant_id is NOT NULL everywhere.
 //   - work_orders.service_snapshot_json is NOT NULL (frozen at creation).
 //   - work_order_events.reason is required when to_state ∈ {cancelled, voided}.
+//   - Tenant integrity: references between two tenant-scoped tables are
+//     COMPOSITE foreign keys on (tenant_id, id), so a row can never point at a
+//     row in another tenant. Each referenced parent therefore carries a
+//     unique (tenant_id, id) constraint. Optional links that use ON DELETE SET
+//     NULL need PostgreSQL's column-scoped `SET NULL (col)` (so the NOT NULL
+//     tenant_id is preserved); Drizzle can't emit that form, so those composite
+//     FKs are declared in 0002_phase_2_tenant_scoped_fks.sql instead.
 // Rules enforced in code (Phase 3+):
 //   - Compliance gate (gating documents + safety acks).
 //   - Work-order lifecycle transitions (see docs/WORK_ORDER_LIFECYCLE.md).
@@ -15,6 +22,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -22,6 +30,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uniqueIndex,
   uuid
 } from "drizzle-orm/pg-core";
@@ -47,6 +56,7 @@ export const tenants = pgTable("tenants", {
 });
 
 // 2. User — human with login credentials, 1:1 with Supabase auth.users.
+// Global (not tenant-scoped): a user can be a member of several tenants.
 export const users = pgTable(
   "users",
   {
@@ -80,6 +90,7 @@ export const memberships = pgTable(
   },
   (t) => [
     uniqueIndex("memberships_tenant_user_unique").on(t.tenantId, t.userId),
+    unique("memberships_tenant_id_id_unique").on(t.tenantId, t.id),
     index("memberships_tenant_idx").on(t.tenantId),
     index("memberships_user_idx").on(t.userId)
   ]
@@ -101,6 +112,7 @@ export const safetyPacks = pgTable(
   },
   (t) => [
     index("safety_packs_tenant_idx").on(t.tenantId),
+    unique("safety_packs_tenant_id_id_unique").on(t.tenantId, t.id),
     uniqueIndex("safety_packs_tenant_name_version_unique").on(
       t.tenantId,
       t.name,
@@ -123,12 +135,15 @@ export const businessProfiles = pgTable(
       .$type<string[]>()
       .notNull()
       .default(sql`'[]'::jsonb`),
-    defaultSafetyPackId: uuid().references(() => safetyPacks.id, {
-      onDelete: "set null"
-    }),
+    // FK to safety_packs is composite + ON DELETE SET NULL (default_safety_pack_id)
+    // and lives in 0002 (Drizzle can't emit column-scoped SET NULL).
+    defaultSafetyPackId: uuid(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
-  (t) => [index("business_profiles_tenant_idx").on(t.tenantId)]
+  (t) => [
+    index("business_profiles_tenant_idx").on(t.tenantId),
+    index("business_profiles_default_safety_pack_idx").on(t.defaultSafetyPackId)
+  ]
 );
 
 // 6. Document Type — required compliance artifact definition.
@@ -147,6 +162,7 @@ export const documentTypes = pgTable(
   },
   (t) => [
     index("document_types_tenant_idx").on(t.tenantId),
+    unique("document_types_tenant_id_id_unique").on(t.tenantId, t.id),
     uniqueIndex("document_types_tenant_name_unique").on(t.tenantId, t.name),
     check(
       "document_types_applies_to_check",
@@ -174,6 +190,7 @@ export const payoutRules = pgTable(
   },
   (t) => [
     index("payout_rules_tenant_idx").on(t.tenantId),
+    unique("payout_rules_tenant_id_id_unique").on(t.tenantId, t.id),
     uniqueIndex("payout_rules_tenant_name_unique").on(t.tenantId, t.name)
   ]
 );
@@ -201,7 +218,10 @@ export const checklistTemplates = pgTable(
       .default(sql`'[]'::jsonb`),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
-  (t) => [index("checklist_templates_tenant_idx").on(t.tenantId)]
+  (t) => [
+    index("checklist_templates_tenant_idx").on(t.tenantId),
+    unique("checklist_templates_tenant_id_id_unique").on(t.tenantId, t.id)
+  ]
 );
 
 // 9. Service Definition — what the business is capable of performing.
@@ -214,12 +234,10 @@ export const serviceDefinitions = pgTable(
       .references(() => tenants.id, { onDelete: "cascade" }),
     name: text().notNull(),
     category: text().notNull(),
-    defaultPayoutRuleId: uuid().references(() => payoutRules.id, {
-      onDelete: "set null"
-    }),
-    checklistTemplateId: uuid().references(() => checklistTemplates.id, {
-      onDelete: "set null"
-    }),
+    // Composite + ON DELETE SET NULL FKs to payout_rules / checklist_templates
+    // are declared in 0002.
+    defaultPayoutRuleId: uuid(),
+    checklistTemplateId: uuid(),
     requiredGear: jsonb()
       .$type<string[]>()
       .notNull()
@@ -237,6 +255,13 @@ export const serviceDefinitions = pgTable(
   },
   (t) => [
     index("service_definitions_tenant_idx").on(t.tenantId),
+    unique("service_definitions_tenant_id_id_unique").on(t.tenantId, t.id),
+    index("service_definitions_default_payout_rule_idx").on(
+      t.defaultPayoutRuleId
+    ),
+    index("service_definitions_checklist_template_idx").on(
+      t.checklistTemplateId
+    ),
     uniqueIndex("service_definitions_tenant_name_unique").on(t.tenantId, t.name)
   ]
 );
@@ -255,7 +280,10 @@ export const customers = pgTable(
     address: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
-  (t) => [index("customers_tenant_idx").on(t.tenantId)]
+  (t) => [
+    index("customers_tenant_idx").on(t.tenantId),
+    unique("customers_tenant_id_id_unique").on(t.tenantId, t.id)
+  ]
 );
 
 // 11. Work Order — concrete instance of a service for a customer.
@@ -266,33 +294,38 @@ export const workOrders = pgTable(
     tenantId: uuid()
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    serviceDefinitionId: uuid()
-      .notNull()
-      .references(() => serviceDefinitions.id, { onDelete: "restrict" }),
-    serviceSnapshotJson: jsonb()
-      .$type<Record<string, unknown>>()
-      .notNull(),
-    customerId: uuid()
-      .notNull()
-      .references(() => customers.id, { onDelete: "restrict" }),
+    serviceDefinitionId: uuid().notNull(),
+    serviceSnapshotJson: jsonb().$type<Record<string, unknown>>().notNull(),
+    customerId: uuid().notNull(),
     address: text(),
     gps: jsonb().$type<{ lat: number; lng: number }>(),
     scheduledFor: timestamp({ withTimezone: true }),
-    assignedContractorMembershipId: uuid().references(() => memberships.id, {
-      onDelete: "set null"
-    }),
+    // Composite + ON DELETE SET NULL FK to memberships lives in 0002.
+    assignedContractorMembershipId: uuid(),
     status: workOrderStateEnum().notNull().default("draft"),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     createdBy: uuid().references(() => users.id, { onDelete: "set null" })
   },
   (t) => [
+    unique("work_orders_tenant_id_id_unique").on(t.tenantId, t.id),
+    foreignKey({
+      name: "work_orders_service_def_fk",
+      columns: [t.tenantId, t.serviceDefinitionId],
+      foreignColumns: [serviceDefinitions.tenantId, serviceDefinitions.id]
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "work_orders_customer_fk",
+      columns: [t.tenantId, t.customerId],
+      foreignColumns: [customers.tenantId, customers.id]
+    }).onDelete("restrict"),
     index("work_orders_tenant_idx").on(t.tenantId),
     index("work_orders_tenant_status_idx").on(t.tenantId, t.status),
     index("work_orders_service_idx").on(t.serviceDefinitionId),
     index("work_orders_customer_idx").on(t.customerId),
     index("work_orders_assigned_contractor_idx").on(
       t.assignedContractorMembershipId
-    )
+    ),
+    index("work_orders_created_by_idx").on(t.createdBy)
   ]
 );
 
@@ -304,9 +337,7 @@ export const workOrderLineItems = pgTable(
     tenantId: uuid()
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    workOrderId: uuid()
-      .notNull()
-      .references(() => workOrders.id, { onDelete: "cascade" }),
+    workOrderId: uuid().notNull(),
     description: text().notNull(),
     quantity: numeric({ precision: 12, scale: 3 }).notNull().default("1"),
     unit: text().notNull().default("each"),
@@ -315,6 +346,12 @@ export const workOrderLineItems = pgTable(
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
+    unique("work_order_line_items_tenant_id_id_unique").on(t.tenantId, t.id),
+    foreignKey({
+      name: "wo_line_items_work_order_fk",
+      columns: [t.tenantId, t.workOrderId],
+      foreignColumns: [workOrders.tenantId, workOrders.id]
+    }).onDelete("cascade"),
     index("work_order_line_items_tenant_idx").on(t.tenantId),
     index("work_order_line_items_work_order_idx").on(t.workOrderId)
   ]
@@ -329,9 +366,7 @@ export const workOrderEvents = pgTable(
     tenantId: uuid()
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    workOrderId: uuid()
-      .notNull()
-      .references(() => workOrders.id, { onDelete: "cascade" }),
+    workOrderId: uuid().notNull(),
     fromState: workOrderStateEnum(),
     toState: workOrderStateEnum().notNull(),
     actor: uuid().references(() => users.id, { onDelete: "set null" }),
@@ -340,7 +375,13 @@ export const workOrderEvents = pgTable(
     source: workOrderEventSourceEnum().notNull()
   },
   (t) => [
+    foreignKey({
+      name: "wo_events_work_order_fk",
+      columns: [t.tenantId, t.workOrderId],
+      foreignColumns: [workOrders.tenantId, workOrders.id]
+    }).onDelete("cascade"),
     index("work_order_events_tenant_idx").on(t.tenantId),
+    index("work_order_events_actor_idx").on(t.actor),
     index("work_order_events_work_order_at_idx").on(t.workOrderId, t.at),
     check(
       "work_order_events_cancelled_voided_needs_reason",
@@ -357,15 +398,22 @@ export const checklistInstances = pgTable(
     tenantId: uuid()
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    workOrderId: uuid()
-      .notNull()
-      .references(() => workOrders.id, { onDelete: "cascade" }),
-    checklistTemplateId: uuid()
-      .notNull()
-      .references(() => checklistTemplates.id, { onDelete: "restrict" }),
+    workOrderId: uuid().notNull(),
+    checklistTemplateId: uuid().notNull(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
+    unique("checklist_instances_tenant_id_id_unique").on(t.tenantId, t.id),
+    foreignKey({
+      name: "checklist_instances_work_order_fk",
+      columns: [t.tenantId, t.workOrderId],
+      foreignColumns: [workOrders.tenantId, workOrders.id]
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "checklist_instances_template_fk",
+      columns: [t.tenantId, t.checklistTemplateId],
+      foreignColumns: [checklistTemplates.tenantId, checklistTemplates.id]
+    }).onDelete("restrict"),
     index("checklist_instances_tenant_idx").on(t.tenantId),
     uniqueIndex("checklist_instances_work_order_unique").on(t.workOrderId)
   ]
@@ -379,9 +427,7 @@ export const checklistSteps = pgTable(
     tenantId: uuid()
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    checklistInstanceId: uuid()
-      .notNull()
-      .references(() => checklistInstances.id, { onDelete: "cascade" }),
+    checklistInstanceId: uuid().notNull(),
     ordinal: integer().notNull(),
     label: text().notNull(),
     requiresPhoto: boolean().notNull().default(false),
@@ -390,7 +436,14 @@ export const checklistSteps = pgTable(
     completedBy: uuid().references(() => users.id, { onDelete: "set null" })
   },
   (t) => [
+    unique("checklist_steps_tenant_id_id_unique").on(t.tenantId, t.id),
+    foreignKey({
+      name: "checklist_steps_instance_fk",
+      columns: [t.tenantId, t.checklistInstanceId],
+      foreignColumns: [checklistInstances.tenantId, checklistInstances.id]
+    }).onDelete("cascade"),
     index("checklist_steps_tenant_idx").on(t.tenantId),
+    index("checklist_steps_completed_by_idx").on(t.completedBy),
     index("checklist_steps_instance_ordinal_idx").on(
       t.checklistInstanceId,
       t.ordinal
@@ -406,12 +459,9 @@ export const proofOfWorkArtifacts = pgTable(
     tenantId: uuid()
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    workOrderId: uuid()
-      .notNull()
-      .references(() => workOrders.id, { onDelete: "cascade" }),
-    checklistStepId: uuid().references(() => checklistSteps.id, {
-      onDelete: "set null"
-    }),
+    workOrderId: uuid().notNull(),
+    // Composite + ON DELETE SET NULL FK to checklist_steps lives in 0002.
+    checklistStepId: uuid(),
     kind: proofOfWorkKindEnum().notNull(),
     fileId: text(),
     localFileUri: text(),
@@ -421,8 +471,14 @@ export const proofOfWorkArtifacts = pgTable(
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
+    foreignKey({
+      name: "pow_artifacts_work_order_fk",
+      columns: [t.tenantId, t.workOrderId],
+      foreignColumns: [workOrders.tenantId, workOrders.id]
+    }).onDelete("cascade"),
     index("proof_of_work_artifacts_tenant_idx").on(t.tenantId),
     index("proof_of_work_artifacts_work_order_idx").on(t.workOrderId),
+    index("proof_of_work_artifacts_captured_by_idx").on(t.capturedBy),
     index("proof_of_work_artifacts_step_idx").on(t.checklistStepId)
   ]
 );
@@ -436,15 +492,18 @@ export const customerSignoffs = pgTable(
     tenantId: uuid()
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    workOrderId: uuid()
-      .notNull()
-      .references(() => workOrders.id, { onDelete: "cascade" }),
+    workOrderId: uuid().notNull(),
     signedAt: timestamp({ withTimezone: true }).notNull(),
     signatureFileId: text().notNull(),
     signedName: text().notNull(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
+    foreignKey({
+      name: "customer_signoffs_work_order_fk",
+      columns: [t.tenantId, t.workOrderId],
+      foreignColumns: [workOrders.tenantId, workOrders.id]
+    }).onDelete("cascade"),
     index("customer_signoffs_tenant_idx").on(t.tenantId),
     uniqueIndex("customer_signoffs_work_order_unique").on(t.workOrderId)
   ]
@@ -458,12 +517,8 @@ export const contractorDocuments = pgTable(
     tenantId: uuid()
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    contractorMembershipId: uuid()
-      .notNull()
-      .references(() => memberships.id, { onDelete: "cascade" }),
-    documentTypeId: uuid()
-      .notNull()
-      .references(() => documentTypes.id, { onDelete: "restrict" }),
+    contractorMembershipId: uuid().notNull(),
+    documentTypeId: uuid().notNull(),
     fileId: text(),
     issuedOn: timestamp({ withTimezone: true }),
     expiresOn: timestamp({ withTimezone: true }),
@@ -473,9 +528,20 @@ export const contractorDocuments = pgTable(
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
+    foreignKey({
+      name: "contractor_docs_membership_fk",
+      columns: [t.tenantId, t.contractorMembershipId],
+      foreignColumns: [memberships.tenantId, memberships.id]
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "contractor_docs_doc_type_fk",
+      columns: [t.tenantId, t.documentTypeId],
+      foreignColumns: [documentTypes.tenantId, documentTypes.id]
+    }).onDelete("restrict"),
     index("contractor_documents_tenant_idx").on(t.tenantId),
     index("contractor_documents_contractor_idx").on(t.contractorMembershipId),
     index("contractor_documents_type_idx").on(t.documentTypeId),
+    index("contractor_documents_verified_by_idx").on(t.verifiedBy),
     index("contractor_documents_expires_idx").on(t.expiresOn)
   ]
 );
@@ -488,17 +554,23 @@ export const safetyAcknowledgements = pgTable(
     tenantId: uuid()
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    contractorMembershipId: uuid()
-      .notNull()
-      .references(() => memberships.id, { onDelete: "cascade" }),
-    safetyPackId: uuid()
-      .notNull()
-      .references(() => safetyPacks.id, { onDelete: "restrict" }),
+    contractorMembershipId: uuid().notNull(),
+    safetyPackId: uuid().notNull(),
     signedAt: timestamp({ withTimezone: true }).notNull(),
     signatureFileId: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
+    foreignKey({
+      name: "safety_acks_membership_fk",
+      columns: [t.tenantId, t.contractorMembershipId],
+      foreignColumns: [memberships.tenantId, memberships.id]
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "safety_acks_pack_fk",
+      columns: [t.tenantId, t.safetyPackId],
+      foreignColumns: [safetyPacks.tenantId, safetyPacks.id]
+    }).onDelete("restrict"),
     index("safety_acknowledgements_tenant_idx").on(t.tenantId),
     index("safety_acknowledgements_contractor_idx").on(t.contractorMembershipId),
     index("safety_acknowledgements_pack_idx").on(t.safetyPackId),
@@ -527,6 +599,7 @@ export const payoutPeriods = pgTable(
   },
   (t) => [
     index("payout_periods_tenant_idx").on(t.tenantId),
+    unique("payout_periods_tenant_id_id_unique").on(t.tenantId, t.id),
     uniqueIndex("payout_periods_tenant_range_unique").on(
       t.tenantId,
       t.periodStart,
@@ -543,28 +616,37 @@ export const payoutLines = pgTable(
     tenantId: uuid()
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    payoutPeriodId: uuid()
-      .notNull()
-      .references(() => payoutPeriods.id, { onDelete: "cascade" }),
-    contractorMembershipId: uuid()
-      .notNull()
-      .references(() => memberships.id, { onDelete: "restrict" }),
-    workOrderId: uuid()
-      .notNull()
-      .references(() => workOrders.id, { onDelete: "restrict" }),
-    workOrderLineItemId: uuid().references(() => workOrderLineItems.id, {
-      onDelete: "set null"
-    }),
+    payoutPeriodId: uuid().notNull(),
+    contractorMembershipId: uuid().notNull(),
+    workOrderId: uuid().notNull(),
+    // Composite + ON DELETE SET NULL FKs to work_order_line_items / payout_rules
+    // live in 0002.
+    workOrderLineItemId: uuid(),
     amount: numeric({ precision: 14, scale: 2 }).notNull(),
-    computedFrom: uuid().references(() => payoutRules.id, {
-      onDelete: "set null"
-    }),
+    computedFrom: uuid(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
+    foreignKey({
+      name: "payout_lines_period_fk",
+      columns: [t.tenantId, t.payoutPeriodId],
+      foreignColumns: [payoutPeriods.tenantId, payoutPeriods.id]
+    }).onDelete("cascade"),
+    foreignKey({
+      name: "payout_lines_membership_fk",
+      columns: [t.tenantId, t.contractorMembershipId],
+      foreignColumns: [memberships.tenantId, memberships.id]
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "payout_lines_work_order_fk",
+      columns: [t.tenantId, t.workOrderId],
+      foreignColumns: [workOrders.tenantId, workOrders.id]
+    }).onDelete("restrict"),
     index("payout_lines_tenant_idx").on(t.tenantId),
     index("payout_lines_period_idx").on(t.payoutPeriodId),
     index("payout_lines_contractor_idx").on(t.contractorMembershipId),
-    index("payout_lines_work_order_idx").on(t.workOrderId)
+    index("payout_lines_work_order_idx").on(t.workOrderId),
+    index("payout_lines_line_item_idx").on(t.workOrderLineItemId),
+    index("payout_lines_computed_from_idx").on(t.computedFrom)
   ]
 );
