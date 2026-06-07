@@ -18,6 +18,11 @@ safety, documentation, proof-of-work, and 1099 payout.
 | [`docs/WORKSIE_SPINE.md`](docs/WORKSIE_SPINE.md) | Product identity, doctrine, canonical stack |
 | [`docs/PRD.md`](docs/PRD.md) | Personas, top-level flows, v1 scope |
 | [`docs/DOMAIN_MODEL.md`](docs/DOMAIN_MODEL.md) | Entities, relationships, hard rules |
+| [`docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md`](docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md) | GTM/productization classification and readiness gates |
+| [`docs/WORKSIE_GTM_PROJECT_PLAN.md`](docs/WORKSIE_GTM_PROJECT_PLAN.md) | Project-manager plan, safe gates, hold gates, GTM backlog |
+| [`docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md`](docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md) | Open PR triage, positioning overlap, Phase 3 readiness, future-work gates |
+| [`docs/reviews/WORKSIE_PHASE_3_REVIEW_CHECKLIST.md`](docs/reviews/WORKSIE_PHASE_3_REVIEW_CHECKLIST.md) | PR #31/#26 Phase 3 schema, RLS, auth, and tenant-boundary review checklist |
+| [`docs/reviews/WORKSIE_POSITIONING_CONSOLIDATION_CHECKLIST.md`](docs/reviews/WORKSIE_POSITIONING_CONSOLIDATION_CHECKLIST.md) | PR #29/#30 positioning consolidation checklist and doctrine guardrails |
 | [`docs/TECH_STACK_DECISION.md`](docs/TECH_STACK_DECISION.md) | Why Supabase + Next.js + Expo + PowerSync |
 | [`docs/OFFLINE_FIRST_ARCHITECTURE.md`](docs/OFFLINE_FIRST_ARCHITECTURE.md) | Sync classes, conflict rules, upload queue |
 | [`docs/ONBOARDING_FLOWS.md`](docs/ONBOARDING_FLOWS.md) | Tenant and contractor onboarding, compliance gate |
