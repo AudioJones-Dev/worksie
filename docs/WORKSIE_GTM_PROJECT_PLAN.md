@@ -1,12 +1,12 @@
 ---
 title: Worksie - GTM Project Plan
-status: draft
-version: v0.1
+status: active
+version: v0.3
 owner: AJ Digital LLC / Audio Jones
 related_spec: docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md
 safe_gate_review: docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md
 created: 2026-06-01
-updated: 2026-06-02
+updated: 2026-06-27
 ---
 
 # Worksie - GTM Project Plan
@@ -33,9 +33,9 @@ the work required before those promotions can be considered.
 The recommended path is to move Worksie from internal prototype toward a
 client-pilot-ready asset through controlled gates:
 
-1. Stabilize repo and open PR state.
-2. Settle product positioning and product-boundary docs.
-3. Decide and validate the Phase 3 tenancy/auth/RLS path.
+1. Keep `main`, docs, and validation trustworthy.
+2. Preserve current product positioning and product-boundary docs.
+3. Treat Phase 3 tenancy/auth/RLS as landed and validated.
 4. Define the first pilot scenario and first domain slice.
 5. Build the first domain slice behind evidence gates.
 6. Prepare a private demo and pilot-readiness review.
@@ -49,11 +49,11 @@ production infrastructure, client commitments, or irreversible repo state.
 
 | Workstream | Purpose | Current status | Next owner |
 |---|---|---|---|
-| Repo hygiene | Keep `main`, PRs, CI, and docs trustworthy | Active; PR #33 open | Codex |
-| Positioning | Align product boundary and competitive wording | PR #29/#30 open | Codex review, Audio decision |
-| Schema/RLS hardening | Decide whether PR #31 is the next merge candidate | PR #31 open draft | Codex review |
+| Repo hygiene | Keep `main`, PRs, CI, and docs trustworthy | Clean after Sprint -1 consolidation | Codex |
+| Positioning | Align product boundary and competitive wording | Current GTM/spec docs accepted as working doctrine | Audio decision only for public claims |
+| Schema/RLS hardening | Maintain tenant-boundary evidence | Phase 2 hardening + Phase 3 auth boundary merged | Codex |
 | Pilot scenario | Define the first real-world install workflow | Not selected | Audio decision after Codex brief |
-| First domain slice | Implement the smallest useful flow after Phase 3 gate | Not started | Codex after approval |
+| First domain slice | Implement the smallest useful flow after Phase 3 gate | Ready for Phase 4 task spec | Codex after approval |
 | GTM assets | Demo script, private proof, future public copy | Not started | Codex/Claude after evidence |
 | Measurement | Define pilot outcome and attribution proof | Not started | Codex/Claude |
 
@@ -111,56 +111,60 @@ implementation.
 Objective: know the exact repo, PR, and doctrine state before touching product
 implementation.
 
+Status: complete as of 2026-06-27 Sprint -1 consolidation.
+
 Tasks:
 
-- Verify local branch, remote, and clean worktree.
-- Confirm PR #33 remains docs-only and green.
-- Inventory open PRs by age, scope, and conflict risk.
-- Identify stale PRs that predate the Phase 2 canonical schema and Firebase
-  retirement direction.
-- Produce a merge/close/rebase recommendation table.
+- Keep local `main` fast-forwarded to `origin/main`.
+- Keep the worktree clean before new work starts.
+- Keep stale closed-PR context historical; do not use it as build direction.
+- Re-run validation before claiming readiness.
 
 Exit gate:
 
-- A PR triage table exists.
+- `main` is clean and validation is green.
 - No implementation starts.
-- Audio only needs to intervene if a stale PR should be closed, merged, or
-  superseded.
+- Audio only needs to intervene if the next step changes pilot direction,
+  readiness stage, public claims, production state, or implementation scope.
 
 ### Phase 1 - Product Boundary Alignment
 
 Objective: resolve product wording and boundary before new feature work.
 
+Status: stable enough for internal Phase 4 planning. Public product/SaaS
+claims remain a hold gate.
+
 Tasks:
 
-- Review PR #29 and PR #30 for overlap.
-- Recommend one of: merge one, supersede both with a clean combined PR, or keep
-  both closed in favor of the current GTM spec.
-- Confirm whether Worksie's public-facing line remains "Mobile-first
+- Preserve the current working line: "Mobile-first configurable operations
+  platform for blue-collar businesses."
+- Confirm whether any future public-facing line remains "Mobile-first
   configurable operations platform for blue-collar businesses."
 - Ensure `WORKSIE_SPINE.md`, `PRD.md`, README, and GTM spec do not conflict.
 
 Exit gate:
 
-- One authoritative product-boundary path is selected.
-- Audio decision required only if public positioning or PR disposition changes.
+- One authoritative product-boundary path remains selected.
+- Audio decision required only if public positioning changes.
 
 ### Phase 2 - Phase 3 Readiness Brief
 
 Objective: decide whether Phase 3 tenancy/auth/RLS can safely advance.
 
+Status: complete. Phase 2 hardening and Phase 3 auth/tenant boundary are
+merged to `main`; validation passed locally on 2026-06-27 with Node 20/pnpm 9.
+
 Tasks:
 
-- Review PR #31 against current `main`.
-- Identify whether PR #31 should be refreshed, merged, split, or replaced.
-- Check migration implications and tenant-boundary risk.
-- Confirm validation commands needed for schema/RLS work.
+- Preserve `docs/PHASE_3_AUTH.md` as the boundary contract.
+- Keep `scripts/verify-rls/` available for tenant-boundary regression checks.
+- Confirm any future schema/RLS change has its own migration and verification
+  plan.
 
 Exit gate:
 
-- A Phase 3 readiness brief exists.
-- Audio decision required before merging schema/RLS hardening or authorizing
-  implementation work.
+- Phase 3 readiness is historical and complete.
+- Audio decision required before starting Phase 4 implementation work.
 
 ### Phase 3 - Pilot Scenario Definition
 
@@ -200,7 +204,7 @@ Likely first slice:
 Exit gate:
 
 - Implementation plan is scoped to one PR or a small PR sequence.
-- No code starts until the Phase 3 gate and pilot scenario are approved.
+- No code starts until the pilot scenario and Phase 4 task spec are approved.
 
 ### Phase 5 - Private Demo Package
 
@@ -263,19 +267,16 @@ Exit gate:
 
 | Order | Task | Gate type | Owner | Output |
 |---|---|---|---|---|
-| 1 | Triage open PRs #1-#31 for stale/conflicting scope | Safe | Codex | PR disposition table |
-| 2 | Compare PR #29 and #30 positioning docs | Safe | Codex | Recommendation |
-| 3 | Review PR #31 Phase 3 hardening | Safe until merge decision | Codex | Readiness brief |
-| 4 | Draft pilot scenario options | Safe | Codex/Claude | 2-3 options |
-| 5 | Choose pilot scenario | Hold | Audio | Approved scenario |
-| 6 | Draft first domain-slice implementation plan | Safe after scenario | Codex | Build plan |
-| 7 | Approve implementation | Hold | Audio | Proceed gate |
+| 1 | Keep repo/prune state clean after Sprint -1 | Safe | Codex | Clean `main`, no open PRs |
+| 2 | Draft pilot scenario options | Safe | Codex/Claude | 2-3 options |
+| 3 | Choose pilot scenario | Hold | Audio | Approved scenario |
+| 4 | Draft Phase 4 first domain-slice implementation plan | Safe after scenario | Codex | Build plan |
+| 5 | Approve implementation | Hold | Audio | Proceed gate |
 
 Current safe-gate implementation reference:
 
-- `docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md` records the open PR triage,
-  PR #29/#30 positioning comparison, PR #31/#26 Phase 3 readiness brief,
-  pilot scenario options, and hold gates for future work.
+- `docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md` records the historical PR
+  triage and the current pilot-scenario / Phase 4 hold gates.
 
 ## 6. Project Manager Operating Rules
 
@@ -326,3 +327,5 @@ Until then, Worksie remains an internal prototype with a paid-product target.
   execution, safe gates, hold gates, and next backlog.
 - v0.2 | 2026-06-02 | Linked the safe-gate review artifact for PR triage,
   positioning overlap, Phase 3 readiness, and future implementation control.
+- v0.3 | 2026-06-27 | Recorded Sprint -1 consolidation completion, Phase 3
+  merge state, and next gate toward Phase 4 pilot-scenario selection.
