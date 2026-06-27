@@ -96,10 +96,30 @@ when reasoning about features, schemas, or workflows:
 
 Worksie must generalize beyond this pack, but it must work cleanly for it.
 
+## Approved Pilot Scenario
+
+The first Phase 4 pilot scenario is the **accessibility ramp install workflow**.
+Frame it as a reusable regulated field-service proof workflow, not a
+one-client custom build.
+
+The pilot must prove:
+
+- service definition setup for an accessibility ramp install
+- contractor compliance checked before dispatch
+- tenant-aware work order creation and assignment
+- mobile checklist execution with proof capture
+- customer sign-off on the worker device
+- back-office review that makes the work order payout-draft-ready
+
+The pilot must not introduce live client data, payout automation, production
+deployment, public SaaS claims, or client-specific hardcoding.
+
 ## What Lives Where
 
 - `docs/WORKSIE_SPINE.md` — this file. Product identity, doctrine, stack.
 - `docs/PRD.md` — product requirements at the user-flow level.
+- `docs/PHASE_4_ACCESSIBILITY_RAMP_TASK_SPEC.md` — Phase 4 build charter and
+  task spec for the approved first pilot slice.
 - `docs/DOMAIN_MODEL.md` — entities, relationships, lifecycle.
 - `docs/TECH_STACK_DECISION.md` — stack rationale and trade-offs.
 - `docs/OFFLINE_FIRST_ARCHITECTURE.md` — sync model, conflict rules.
