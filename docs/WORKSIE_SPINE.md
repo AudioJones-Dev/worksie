@@ -118,6 +118,8 @@ deployment, public SaaS claims, or client-specific hardcoding.
 
 - `docs/WORKSIE_SPINE.md` — this file. Product identity, doctrine, stack.
 - `docs/PRD.md` — product requirements at the user-flow level.
+- `docs/PHASE_4_ACCESSIBILITY_RAMP_TASK_SPEC.md` — Phase 4 build charter and
+  task spec for the approved first pilot slice.
 - `docs/DOMAIN_MODEL.md` — entities, relationships, lifecycle.
 - `docs/TECH_STACK_DECISION.md` — stack rationale and trade-offs.
 - `docs/OFFLINE_FIRST_ARCHITECTURE.md` — sync model, conflict rules.

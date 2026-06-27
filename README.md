@@ -20,6 +20,7 @@ safety, documentation, proof-of-work, and 1099 payout.
 | [`docs/WORKSIE_SPINE.md`](docs/WORKSIE_SPINE.md) | Product identity, doctrine, canonical stack |
 | [`docs/PRD.md`](docs/PRD.md) | Personas, top-level flows, v1 scope |
 | [`docs/DOMAIN_MODEL.md`](docs/DOMAIN_MODEL.md) | Entities, relationships, hard rules |
+| [`docs/PHASE_4_ACCESSIBILITY_RAMP_TASK_SPEC.md`](docs/PHASE_4_ACCESSIBILITY_RAMP_TASK_SPEC.md) | Draft Phase 4 build charter and task spec for the approved ramp install pilot |
 | [`docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md`](docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md) | GTM/productization classification and readiness gates |
 | [`docs/WORKSIE_GTM_PROJECT_PLAN.md`](docs/WORKSIE_GTM_PROJECT_PLAN.md) | Project-manager plan, safe gates, hold gates, GTM backlog |
 | [`docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md`](docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md) | Historical Sprint -1 triage plus current Phase 4 gates |

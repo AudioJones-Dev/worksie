@@ -1,7 +1,7 @@
 ---
 title: Worksie - GTM + Productization Spec
 status: snapshot
-version: v0.3
+version: v0.4
 owner: AJ Digital LLC / Audio Jones
 source: G:\AJ-INTERNAL\AJ-DIGITAL-VAULT\02-PROJECTS\WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md
 source_standard: G:\AJ-INTERNAL\AJ-DIGITAL-VAULT\08-KNOWLEDGE\DOCTRINE\Standards\CANONICAL_GTM_AND_PRODUCTIZATION_STANDARD.md
@@ -229,7 +229,8 @@ Gate to `Paid Product`:
 ## 20. Required Assets
 
 - Worksie product roadmap aligned to current Phase 3 state.
-- Phase 4 accessibility-ramp first domain-slice PR plan.
+- Phase 4 accessibility-ramp first domain-slice task spec:
+  [`docs/PHASE_4_ACCESSIBILITY_RAMP_TASK_SPEC.md`](PHASE_4_ACCESSIBILITY_RAMP_TASK_SPEC.md)
 - Approved pilot scenario: accessibility ramp install workflow.
 - Demo data/fixtures for accessibility install workflow.
 - UI screenshots in PRs for mobile and desktop changes.
@@ -337,7 +338,7 @@ Use [`docs/WORKSIE_GTM_PROJECT_PLAN.md`](WORKSIE_GTM_PROJECT_PLAN.md) for the
 project-manager sequence, safe gates, hold gates, and GTM backlog.
 
 1. Keep `main` clean and validation green after Sprint -1 consolidation.
-2. Draft the Phase 4 task spec for the approved accessibility ramp install
+2. Review the Phase 4 task spec for the approved accessibility ramp install
    workflow.
 3. Only after a separate approval gate, implement the first domain slice.
 
@@ -350,3 +351,5 @@ project-manager sequence, safe gates, hold gates, and GTM backlog.
   consolidation and Phase 3 auth/tenant boundary merge.
 - v0.3 | 2026-06-27 | Recorded the accessibility ramp install workflow as
   the approved first pilot scenario for Phase 4 planning.
+- v0.4 | 2026-06-27 | Linked the draft Phase 4 accessibility ramp task spec
+  and kept runtime implementation behind a separate approval gate.

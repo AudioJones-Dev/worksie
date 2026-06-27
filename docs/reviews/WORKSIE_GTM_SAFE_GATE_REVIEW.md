@@ -1,7 +1,7 @@
 ---
 title: Worksie - GTM Safe-Gate Review
 status: historical
-version: v0.4
+version: v0.5
 owner: AJ Digital LLC / Audio Jones
 related_plan: docs/WORKSIE_GTM_PROJECT_PLAN.md
 related_spec: docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md
@@ -155,8 +155,9 @@ field-service proof workflow rather than a one-client custom build.
 
 Approved pilot path:
 
-- Draft the Phase 4 first-slice task spec around the accessibility ramp install
-  workflow.
+- Review the draft Phase 4 first-slice task spec around the accessibility ramp
+  install workflow:
+  [`docs/PHASE_4_ACCESSIBILITY_RAMP_TASK_SPEC.md`](../PHASE_4_ACCESSIBILITY_RAMP_TASK_SPEC.md)
 - Keep data fictional or sanitized.
 - Do not start implementation until Audio approves the Phase 4 task spec.
 
@@ -186,8 +187,8 @@ Audio approval is required for:
 
 Codex may continue safely with:
 
-- Drafting a Phase 4 first-slice task spec for the approved accessibility ramp
-  install workflow.
+- Updating the draft Phase 4 first-slice task spec for the approved
+  accessibility ramp install workflow.
 - Running local validation.
 - Keeping docs aligned with `main`.
 - Creating draft PRs for docs-only planning work.
@@ -202,3 +203,5 @@ Codex may continue safely with:
   consolidation and Phase 3 merge completion.
 - v0.4 | 2026-06-27 | Recorded Audio approval of the accessibility ramp
   install workflow and moved the hold gate to Phase 4 implementation approval.
+- v0.5 | 2026-06-27 | Linked the draft Phase 4 accessibility ramp task spec
+  and preserved implementation as a hold gate.

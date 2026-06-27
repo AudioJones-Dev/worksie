@@ -1,7 +1,7 @@
 ---
 title: Worksie - GTM Project Plan
 status: active
-version: v0.4
+version: v0.5
 owner: AJ Digital LLC / Audio Jones
 related_spec: docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md
 safe_gate_review: docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md
@@ -53,7 +53,7 @@ production infrastructure, client commitments, or irreversible repo state.
 | Positioning | Align product boundary and competitive wording | Current GTM/spec docs accepted as working doctrine | Audio decision only for public claims |
 | Schema/RLS hardening | Maintain tenant-boundary evidence | Phase 2 hardening + Phase 3 auth boundary merged | Codex |
 | Pilot scenario | Define the first real-world install workflow | Approved: accessibility ramp install workflow | Codex for Phase 4 task spec |
-| First domain slice | Implement the smallest useful flow after Phase 3 gate | Ready for Phase 4 task spec | Codex after approval |
+| First domain slice | Implement the smallest useful flow after Phase 3 gate | Draft task spec created | Audio approval before code |
 | GTM assets | Demo script, private proof, future public copy | Not started | Codex/Claude after evidence |
 | Measurement | Define pilot outcome and attribution proof | Not started | Codex/Claude |
 
@@ -211,19 +211,26 @@ Exit gate:
 Objective: produce the build plan for the first useful slice after Phase 3 is
 approved.
 
-Likely first slice:
+Draft task spec:
 
-- Tenant-aware read model.
-- Service definitions.
-- Work orders read-only/admin view.
-- Seed/fixture data.
-- Basic mobile work-order view.
+- [`docs/PHASE_4_ACCESSIBILITY_RAMP_TASK_SPEC.md`](PHASE_4_ACCESSIBILITY_RAMP_TASK_SPEC.md)
+
+Approved pilot direction:
+
+- Accessibility ramp install workflow.
+
+Planned first slice:
+
+- Tenant-aware read model for one ramp install work order.
+- Fictional or sanitized fixture data.
+- Read-only web admin view.
+- Read-only mobile work-order view.
 - No payout automation beyond evidence modeling.
 
 Exit gate:
 
-- Implementation plan is scoped to one PR or a small PR sequence.
-- No code starts until the pilot scenario and Phase 4 task spec are approved.
+- Task spec is reviewed and approved by Audio.
+- No code starts until the Phase 4 task spec is approved.
 
 ### Phase 5 - Private Demo Package
 
@@ -289,7 +296,7 @@ Exit gate:
 | 1 | Keep repo/prune state clean after Sprint -1 | Safe | Codex | Clean `main`, no open PRs |
 | 2 | Record approved accessibility ramp pilot scenario | Safe after approval | Codex | Aligned docs |
 | 3 | Draft Phase 4 accessibility-ramp first-slice task spec | Safe | Codex | Build plan |
-| 4 | Approve implementation | Hold | Audio | Proceed gate |
+| 4 | Approve Phase 4 task spec and implementation start | Hold | Audio | Proceed gate |
 
 Current safe-gate implementation reference:
 
@@ -349,3 +356,5 @@ Until then, Worksie remains an internal prototype with a paid-product target.
   merge state, and next gate toward Phase 4 pilot-scenario selection.
 - v0.4 | 2026-06-27 | Recorded Audio approval of the accessibility ramp
   install workflow as the first Phase 4 pilot scenario.
+- v0.5 | 2026-06-27 | Linked the draft Phase 4 accessibility ramp task spec
+  and kept implementation behind Audio approval.
