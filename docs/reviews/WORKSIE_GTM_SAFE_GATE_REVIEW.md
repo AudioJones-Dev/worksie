@@ -1,7 +1,7 @@
 ---
 title: Worksie - GTM Safe-Gate Review
 status: historical
-version: v0.3
+version: v0.4
 owner: AJ Digital LLC / Audio Jones
 related_plan: docs/WORKSIE_GTM_PROJECT_PLAN.md
 related_spec: docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md
@@ -31,12 +31,13 @@ Recommended next path:
 2. Use this review only as historical context for why stale PRs were not build
    direction.
 3. Keep public product/SaaS/subscription claims behind an Audio approval gate.
-4. Ask Audio before choosing a pilot scenario, approving public copy, changing
-   production infrastructure, or starting Phase 4 implementation.
+4. Use the approved accessibility ramp install workflow for Phase 4 planning.
+5. Ask Audio before approving public copy, changing production infrastructure,
+   or starting Phase 4 implementation.
 
 Safe work may continue as docs, review briefs, local validation, PR body
-updates, non-destructive inspection, and Phase 4 planning until pilot-scenario
-and implementation gates are cleared.
+updates, non-destructive inspection, and Phase 4 planning until the Phase 4
+implementation gate is cleared.
 
 ## 1a. 2026-06-27 Consolidation Outcome
 
@@ -140,23 +141,24 @@ Minimum validation before merging Phase 3 technical work:
 Future schema/RLS/auth changes remain hold gates because they can change the
 database/auth boundary.
 
-## 5. Pilot Scenario Options
+## 5. Pilot Scenario Decision
 
-These are options only. Selection is a hold gate because it sets product
-direction.
+Audio approved Option A on 2026-06-27. The chosen scenario is the
+**accessibility ramp install workflow**, framed as a reusable regulated
+field-service proof workflow rather than a one-client custom build.
 
-| Option | Scenario | Why it fits | Risk |
+| Option | Scenario | Decision | Why |
 |---|---|---|---|
-| A | Accessibility ramp or lift install workflow | Matches existing AJ Digital client context, proof-of-work needs, compliance checks, sign-off, and payout-readiness | Could become too client-specific if not framed as a reusable operations pattern |
-| B | General contractor punch-list completion workflow | Broad blue-collar applicability and clear mobile proof loop | May dilute the accessibility/home-modification advantage |
-| C | Inspection and approval checklist workflow | Strong approval-ready record narrative | May under-test dispatch, contractor compliance, and payout readiness |
+| A | Accessibility ramp install workflow | Approved | Matches reference domain, proof-of-work needs, compliance checks, sign-off, and payout-readiness |
+| B | General contractor punch-list completion workflow | Deferred | Broadly useful, but less aligned to the reference domain |
+| C | Inspection and approval checklist workflow | Deferred | Strong approval record, but under-tests dispatch, compliance, and payout readiness |
 
-Recommended pilot path:
+Approved pilot path:
 
-- Use Option A as the first scenario candidate.
-- Frame it as a reusable "regulated field-service proof workflow," not a
-  one-client custom build.
-- Do not start implementation until Audio approves the pilot scenario.
+- Draft the Phase 4 first-slice task spec around the accessibility ramp install
+  workflow.
+- Keep data fictional or sanitized.
+- Do not start implementation until Audio approves the Phase 4 task spec.
 
 ## 6. Future Work Rules
 
@@ -165,8 +167,7 @@ Future agents should use this sequence:
 1. Start with `docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md`.
 2. Then read `docs/WORKSIE_GTM_PROJECT_PLAN.md`.
 3. Then read this review before touching Phase 4 work.
-4. Keep work docs-only until the pilot scenario and Phase 4 task spec are
-   approved.
+4. Keep work docs-only until the Phase 4 task spec is approved.
 5. After approval, implement the smallest domain slice that proves the selected
    pilot scenario.
 
@@ -177,7 +178,6 @@ PRs as forward build direction unless Audio explicitly reopens that path.
 
 Audio approval is required for:
 
-- Choosing the pilot scenario.
 - Starting code implementation for the first domain slice.
 - Publishing public product/SaaS/subscription copy.
 - Any production deploy, secret handling, billing, or client-data work.
@@ -186,8 +186,8 @@ Audio approval is required for:
 
 Codex may continue safely with:
 
-- Drafting 2-3 pilot scenario options without selecting one.
-- Drafting a Phase 4 first-slice task spec after the pilot direction is clear.
+- Drafting a Phase 4 first-slice task spec for the approved accessibility ramp
+  install workflow.
 - Running local validation.
 - Keeping docs aligned with `main`.
 - Creating draft PRs for docs-only planning work.
@@ -200,3 +200,5 @@ Codex may continue safely with:
   checklists for the next safe-gate reviews.
 - v0.3 | 2026-06-27 | Marked Sprint -1 triage historical after branch/PR
   consolidation and Phase 3 merge completion.
+- v0.4 | 2026-06-27 | Recorded Audio approval of the accessibility ramp
+  install workflow and moved the hold gate to Phase 4 implementation approval.

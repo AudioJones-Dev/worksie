@@ -6,8 +6,9 @@ model into field-ready execution: onboarding, dispatch, work orders,
 safety, documentation, proof-of-work, and 1099 payout.
 
 > **Status:** Phase 3 — canonical schema, RLS hardening, and the
-> tenant/auth boundary have landed. Phase 4 is the first domain slice:
-> a tenant-aware work-order/read-model implementation.
+> tenant/auth boundary have landed. Phase 4 is the first domain slice for the
+> approved accessibility ramp install pilot: a tenant-aware work-order/read
+> model implementation.
 > See [`docs/WORKSIE_SPINE.md`](docs/WORKSIE_SPINE.md) for product identity
 > and [`docs/FIREBASE_MIGRATION_PLAN.md`](docs/FIREBASE_MIGRATION_PLAN.md)
 > for the architecture migration.
@@ -128,11 +129,12 @@ The web app exposes `GET /healthz` returning `{ "ok": true, "phase": "3" }`.
 | Phase 1 | Monorepo scaffold, CI, doc relocation, Firebase artifact removal |
 | Phase 2 | Ontology + Drizzle schema implementation + first real migrations — landed in PR #23 |
 | **Phase 3** | **Auth + RLS + tenancy — landed in PR #26 after Phase 2 hardening** |
-| Phase 4 | First domain slice: tenant-aware work-order/read model |
+| Phase 4 | First domain slice: accessibility ramp install work-order/read model |
 
 Domain feature work may now proceed only through a Phase 4 task spec. Keep the
-first slice narrow: tenant-aware service/work-order read models and fixture
-data before payout automation, production deploys, or public product claims.
+first slice narrow: tenant-aware service/work-order read models and fictional
+or sanitized fixture data before payout automation, production deploys, or
+public product claims.
 
 ## Contributing
 

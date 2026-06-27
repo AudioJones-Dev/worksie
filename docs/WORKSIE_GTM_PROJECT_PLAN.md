@@ -1,7 +1,7 @@
 ---
 title: Worksie - GTM Project Plan
 status: active
-version: v0.3
+version: v0.4
 owner: AJ Digital LLC / Audio Jones
 related_spec: docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md
 safe_gate_review: docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md
@@ -52,7 +52,7 @@ production infrastructure, client commitments, or irreversible repo state.
 | Repo hygiene | Keep `main`, PRs, CI, and docs trustworthy | Clean after Sprint -1 consolidation | Codex |
 | Positioning | Align product boundary and competitive wording | Current GTM/spec docs accepted as working doctrine | Audio decision only for public claims |
 | Schema/RLS hardening | Maintain tenant-boundary evidence | Phase 2 hardening + Phase 3 auth boundary merged | Codex |
-| Pilot scenario | Define the first real-world install workflow | Not selected | Audio decision after Codex brief |
+| Pilot scenario | Define the first real-world install workflow | Approved: accessibility ramp install workflow | Codex for Phase 4 task spec |
 | First domain slice | Implement the smallest useful flow after Phase 3 gate | Ready for Phase 4 task spec | Codex after approval |
 | GTM assets | Demo script, private proof, future public copy | Not started | Codex/Claude after evidence |
 | Measurement | Define pilot outcome and attribution proof | Not started | Codex/Claude |
@@ -86,7 +86,7 @@ Pause and ask for explicit approval before:
   `PRODUCT_READINESS_STAGE`.
 - Moving Worksie from internal prototype to client pilot.
 - Approving public SaaS/subscription/product language.
-- Choosing the first pilot customer, vertical, or live client scenario.
+- Choosing the first pilot customer or live client scenario.
 - Merging stale or high-risk PRs if their scope conflicts with current
   doctrine.
 - Modifying secrets, env values, credentials, service-account files, or client
@@ -171,9 +171,12 @@ Exit gate:
 Objective: define the smallest real operational flow that proves Worksie can
 become client-pilot-ready.
 
-Recommended pilot scenario:
+Status: complete. Audio approved the accessibility ramp install workflow on
+2026-06-27.
 
-- Accessibility ramp or lift install workflow.
+Approved pilot scenario:
+
+- Accessibility ramp install workflow.
 - Operator configures service definition.
 - Contractor compliance is checked.
 - Work order is created and dispatched.
@@ -181,11 +184,27 @@ Recommended pilot scenario:
 - Customer sign-off is captured.
 - Completed work becomes payout-draft-ready.
 
+Pilot framing:
+
+- Treat this as a reusable regulated field-service proof workflow.
+- Do not hardcode one client, one contractor, or one private dataset.
+- Use fictional or sanitized fixture data only.
+
+Success criteria:
+
+- Actor, data, flow, success criteria, and non-goals are documented.
+- Phase 4 can now be planned around one concrete domain slice.
+
+Non-goals:
+
+- No live client data.
+- No payout automation.
+- No production deploy.
+- No public product/SaaS claim.
+
 Exit gate:
 
-- Pilot scenario has actor, data, flow, success criteria, and non-goals.
-- Audio must approve the pilot scenario because it determines product
-  direction.
+- Complete. Next hold gate is Phase 4 implementation approval.
 
 ### Phase 4 - First Domain Slice Implementation Plan
 
@@ -268,10 +287,9 @@ Exit gate:
 | Order | Task | Gate type | Owner | Output |
 |---|---|---|---|---|
 | 1 | Keep repo/prune state clean after Sprint -1 | Safe | Codex | Clean `main`, no open PRs |
-| 2 | Draft pilot scenario options | Safe | Codex/Claude | 2-3 options |
-| 3 | Choose pilot scenario | Hold | Audio | Approved scenario |
-| 4 | Draft Phase 4 first domain-slice implementation plan | Safe after scenario | Codex | Build plan |
-| 5 | Approve implementation | Hold | Audio | Proceed gate |
+| 2 | Record approved accessibility ramp pilot scenario | Safe after approval | Codex | Aligned docs |
+| 3 | Draft Phase 4 accessibility-ramp first-slice task spec | Safe | Codex | Build plan |
+| 4 | Approve implementation | Hold | Audio | Proceed gate |
 
 Current safe-gate implementation reference:
 
@@ -329,3 +347,5 @@ Until then, Worksie remains an internal prototype with a paid-product target.
   positioning overlap, Phase 3 readiness, and future implementation control.
 - v0.3 | 2026-06-27 | Recorded Sprint -1 consolidation completion, Phase 3
   merge state, and next gate toward Phase 4 pilot-scenario selection.
+- v0.4 | 2026-06-27 | Recorded Audio approval of the accessibility ramp
+  install workflow as the first Phase 4 pilot scenario.

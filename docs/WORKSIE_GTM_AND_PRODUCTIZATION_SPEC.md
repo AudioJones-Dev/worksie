@@ -1,7 +1,7 @@
 ---
 title: Worksie - GTM + Productization Spec
 status: snapshot
-version: v0.2
+version: v0.3
 owner: AJ Digital LLC / Audio Jones
 source: G:\AJ-INTERNAL\AJ-DIGITAL-VAULT\02-PROJECTS\WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md
 source_standard: G:\AJ-INTERNAL\AJ-DIGITAL-VAULT\08-KNOWLEDGE\DOCTRINE\Standards\CANONICAL_GTM_AND_PRODUCTIZATION_STANDARD.md
@@ -204,8 +204,8 @@ Gate to `Client pilot`:
 - First domain slice implemented with real web/mobile workflow beyond scaffold.
 - Seed or fixture data supports a realistic install flow.
 - Preview/mobile screenshots exist for relevant UI states if UI changes land.
-- A defined pilot scenario names the client/operator workflow and expected
-  outcome.
+- The approved accessibility ramp install workflow can be completed with
+  fictional or sanitized fixture data.
 
 Gate to `Paid Product`:
 
@@ -229,8 +229,8 @@ Gate to `Paid Product`:
 ## 20. Required Assets
 
 - Worksie product roadmap aligned to current Phase 3 state.
-- Phase 4 first domain-slice PR plan.
-- Pilot scenario document.
+- Phase 4 accessibility-ramp first domain-slice PR plan.
+- Approved pilot scenario: accessibility ramp install workflow.
 - Demo data/fixtures for accessibility install workflow.
 - UI screenshots in PRs for mobile and desktop changes.
 - Future public positioning page only after readiness gates advance.
@@ -311,10 +311,10 @@ packs, work-order flows, and reporting/payout logic.
 
 ## 28. Open Questions
 
-- What is the exact Phase 4 slice after Phase 3 auth/tenant boundary?
+- What is the exact Phase 4 implementation slice for the approved
+  accessibility ramp install workflow?
 - Should a standalone positioning doc be created later, or is the current
   spine/PRD/GTM spec enough until public claims are approved?
-- Which exact vertical pilot should define the first client-pilot scenario?
 - What is the approved pricing hypothesis once readiness advances?
 
 ## 29. Agent Dispatch Plan
@@ -337,10 +337,9 @@ Use [`docs/WORKSIE_GTM_PROJECT_PLAN.md`](WORKSIE_GTM_PROJECT_PLAN.md) for the
 project-manager sequence, safe gates, hold gates, and GTM backlog.
 
 1. Keep `main` clean and validation green after Sprint -1 consolidation.
-2. Choose the first pilot scenario or confirm that Worksie stays internal until
-   more implementation lands.
-3. Only after a separate approval gate, create a scoped implementation plan for
-   the first domain slice.
+2. Draft the Phase 4 task spec for the approved accessibility ramp install
+   workflow.
+3. Only after a separate approval gate, implement the first domain slice.
 
 ## 31. Change Log
 
@@ -349,3 +348,5 @@ project-manager sequence, safe gates, hold gates, and GTM backlog.
   evidence.
 - v0.2 | 2026-06-27 | Updated repo-local evidence after Sprint -1
   consolidation and Phase 3 auth/tenant boundary merge.
+- v0.3 | 2026-06-27 | Recorded the accessibility ramp install workflow as
+  the approved first pilot scenario for Phase 4 planning.
