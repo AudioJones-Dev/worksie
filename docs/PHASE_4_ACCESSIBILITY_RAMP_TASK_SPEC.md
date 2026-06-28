@@ -1,7 +1,7 @@
 ---
 title: Phase 4 - Accessibility Ramp First Slice Task Spec
-status: draft
-version: v0.1
+status: active
+version: v0.2
 owner: AJ Digital LLC / Audio Jones
 related_spine: docs/WORKSIE_SPINE.md
 related_prd: docs/PRD.md
@@ -143,7 +143,7 @@ as an accessibility ramp install while keeping the read model generic:
 
 ### Improve Handoff
 
-Implementation may start only after Audio explicitly approves this task spec.
+Implementation started after Audio approved this task spec with `Proceed`.
 
 Recommended first PR sequence:
 
@@ -270,9 +270,31 @@ inspection shows a smaller safe first step.
 
 ## 6. Open Questions
 
-- Should Phase 4A use typed in-repo fixtures only, or also add a Supabase seed
-  file for the ramp install scenario?
+- Phase 4A uses typed in-repo fixtures only. Supabase seed data is deferred
+  until a database-backed slice is explicitly approved.
 - Should the first web surface be `/work-orders` list plus detail, or a single
   `/work-orders/ramp-install-demo` detail route?
-- Should the first mobile surface be fixture-only or share a package-level
-  read-model adapter with the web app from the first PR?
+- The first mobile surface should share the package-level read-model adapter
+  with the web app when Phase 4C starts.
+
+## 7. Phase 4A Implementation Notes
+
+Phase 4A is scoped to `@worksie/domain`:
+
+- `packages/domain/src/accessibility-ramp-read-model.ts` owns the typed ramp
+  install fixture and read-model projector.
+- `packages/domain/test/accessibility-ramp-read-model.test.ts` verifies the
+  fixture projects tenant id, service name, work-order status, checklist
+  requirements, proof requirements, sign-off requirement, line items, payout
+  readiness marker, and tenant mismatch guard.
+- `packages/domain/package.json` runs the Phase 4A test with `tsx` and includes
+  `test/` in lint coverage.
+
+No UI, route, database migration, RLS change, file upload, sign-off capture,
+payout automation, production deployment, or client data is part of Phase 4A.
+
+## 8. Change Log
+
+- v0.1 | 2026-06-27 | Drafted Phase 4 accessibility ramp task spec.
+- v0.2 | 2026-06-27 | Marked task spec active after approval and recorded
+  Phase 4A typed-fixture implementation boundary.
