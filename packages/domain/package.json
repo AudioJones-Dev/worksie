@@ -9,15 +9,16 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "lint": "eslint src --max-warnings 0",
+    "lint": "eslint src test --max-warnings 0",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit",
-    "test": "echo 'Phase 1: no tests yet'",
+    "test": "tsc --noEmit -p tsconfig.test.json && tsx test/accessibility-ramp-read-model.test.ts",
     "clean": "rm -rf dist .turbo node_modules"
   },
   "devDependencies": {
     "@worksie/config": "workspace:*",
     "eslint": "^8.57.1",
+    "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }
 }
