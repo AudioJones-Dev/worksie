@@ -78,9 +78,19 @@ in the public API — `geofence` is a bare coordinate list with no events,
 no radius semantics, no enter/exit hooks. **They built the capability and
 have not productized it.**
 
-## 3. The public API surface, in full
+## 3. The public API surface, as published
 
-Twelve resource families. This is the complete v2 write surface:
+> **Source caveat.** Everything in this section is derived from the published
+> `openapi.yaml` alone. That spec is **not** reliable as a sole source:
+> CompanyCam's own repository carries three open correctness issues against it
+> — #33 "OpenAPI spec is incorrect for certain endpoints" (2026-01-13), #35
+> (2026-03-03), and #28 (2025-06-05). Their live documentation at
+> `docs.companycam.com` was not read for this review. Read the absences in §3
+> and the conclusions in §4 as *"absent from the published spec,"* not
+> *"absent from the platform."* Verifying against the live docs is the first
+> thing to do before acting on any of it.
+
+Twelve resource families appear in the spec:
 
 ```
 Company     GET /company
