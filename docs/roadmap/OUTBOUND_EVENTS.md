@@ -39,12 +39,27 @@ built and enforced. What is missing is delivery.
 
 ## Competitive note
 
-CompanyCam ships exactly four fields on their `Webhook` object: `url`,
-`scopes[]`, `token`, `enabled`. That is the entire design, and it is enough to
-support their integration ecosystem. Their `ProjectIntegration` object
-(`{type: "JobNimbus", relation_id: "123"}`) shows the strategic position it
-buys them — and its limit: their Project carries a foreign key *into someone
-else's job object*, because the canonical job lives in the other system.
+CompanyCam's published `openapi.yaml` shows a `Webhook` object with four
+fields — `url`, `scopes[]`, `token`, `enabled` — and `/webhooks` CRUD.
+
+**Do not treat that as their full design.** The spec is demonstrably
+incomplete: their own repository carries three open correctness issues,
+including #33 "OpenAPI spec is incorrect for certain endpoints" (open since
+2026-01-13) and #28 (open since 2025-06-05). `Webhook.scopes` is typed as a
+bare `array of string` with no enumerated event list, so the actual event
+catalogue is not visible in the spec at all. Their live documentation at
+`docs.companycam.com` is the authoritative source and has not been read as
+part of this spec-derived review.
+
+What the four fields do establish is the *shape* worth copying — a URL, a
+scope selector, a shared secret for body signing, and an enable flag. Treat
+the delivery semantics below as Worksie's design decisions, not as
+observations of theirs.
+
+Their `ProjectIntegration` object (`{type: "JobNimbus", relation_id: "123"}`)
+shows the strategic position this buys them — and its limit: their Project
+carries a foreign key *into someone else's job object*, because the canonical
+job lives in the other system.
 
 Worksie owns the work order. Emitting events from a system of record is a
 different and stronger position than syncing into one.
