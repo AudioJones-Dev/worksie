@@ -48,6 +48,10 @@ Examples: `WorkOrder`, `WorkOrderLineItem`, `ChecklistInstance`,
 - Conflict rule: **last-writer-wins per field**, with server-side guard
   that rejects illegal state transitions (see
   `WORK_ORDER_LIFECYCLE.md`).
+- "Last writer" is decided against `updated_at`, maintained by a database
+  trigger on every table except `WorkOrderEvent` (append-only, already has
+  `at`). Without it there is no server-side change marker to compare, and
+  this rule is unimplementable.
 - Reassignment is a server-side action; mobile cannot change
   `assigned_contractor_membership_id`.
 
@@ -71,15 +75,29 @@ fields, RLS policies, materialized views.
 
 Photos and signatures are the bandwidth-heavy artifacts. The flow:
 
-1. Mobile captures media → writes file to device.
+1. Mobile captures media → writes file to device → computes `content_hash`
+   (SHA-256) over the bytes.
 2. Mobile inserts `ProofOfWorkArtifact` row in local SQLite with
-   `local_file_uri` set and `file_id` null.
+   `local_file_uri` and `content_hash` set, `file_id` null, and
+   `processing_status = pending`.
 3. PowerSync replicates the row up. Server sees a row referencing a file
    that isn't in Storage yet — fine.
 4. A background upload worker on mobile pushes bytes to Supabase Storage
-   (resumable). On success, it patches the row with `file_id` and clears
-   `local_file_uri`.
-5. Failures retry with backoff. Uploads survive app restart.
+   (resumable), moving `processing_status` to `uploading`. On success it
+   patches the row with `file_id`, clears `local_file_uri`, and sets
+   `processing_status = stored`.
+5. Failures retry with backoff and land on `processing_status = failed` once
+   retries are exhausted. Uploads survive app restart.
+
+`processing_status` is the queue's state column. Before it existed, a row's
+stage had to be inferred from which of `file_id` / `local_file_uri` happened to
+be null, which cannot distinguish "not started" from "failed".
+
+`content_hash` is what makes retry **idempotent**: a worker that dies
+mid-upload and restarts can recognise bytes already in Storage instead of
+re-uploading them, and the server can reject a duplicate write. It is indexed
+but deliberately **not unique** — the same photo may legitimately attach to two
+work orders.
 
 ## Authority Rules
 

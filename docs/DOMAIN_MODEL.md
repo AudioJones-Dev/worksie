@@ -15,6 +15,20 @@ config change does not retroactively rewrite history.
 
 ## Entities
 
+### Common columns
+
+Every entity below carries `tenant_id` (Hard Rule #1) and `created_at`. The
+per-entity lists omit `tenant_id` only where it is already shown.
+
+Every entity also carries `updated_at`, maintained by a database trigger, with
+one exception: **`Work Order Event` has none.** It is append-only by trigger and
+already carries `at`, so a mutable timestamp on it would be dead weight and
+would imply an update path that does not exist.
+
+`updated_at` is not cosmetic. `OFFLINE_FIRST_ARCHITECTURE.md` resolves Class B
+conflicts by last-writer-wins per field, which requires a server-side change
+marker to compare against.
+
 ### Tenant
 The top-level container. Every row in Worksie belongs to exactly one tenant.
 - `id`
@@ -113,6 +127,8 @@ A concrete instance of a service for a customer.
 - `customer_id`
 - `address`
 - `gps` (lat/lng — populated from site)
+- `geofence_radius_m` (nullable; expected capture radius in metres. Storage
+  only — no behavior reads it yet. See `roadmap/CAPTURE_INTEGRITY.md`.)
 - `scheduled_for`
 - `assigned_contractor_membership_id` (nullable until dispatched)
 - `status` (see `WORK_ORDER_LIFECYCLE.md`)
@@ -155,11 +171,22 @@ Append-only. Survives `cancelled` and `voided`. Never updated or deleted.
 - `tenant_id`
 - `work_order_id`
 - `checklist_step_id` (nullable)
-- `kind` ∈ {`photo`, `video`, `signature`, `pdf`, `note`}
+- `kind` ∈ {`photo`, `video`, `audio`, `signature`, `pdf`, `note`}
 - `file_id` (Supabase Storage)
+- `local_file_uri` (nullable; set on device until the upload completes)
+- `content_hash` (nullable; SHA-256 hex of the file bytes. Makes upload retry
+  idempotent and enables dedup. Indexed, **not** unique — the same file may
+  legitimately attach to more than one work order.)
+- `processing_status` ∈ {`pending`, `uploading`, `stored`, `failed`}
+- `body` (nullable; the note text when `kind = note`, an optional caption
+  otherwise)
 - `gps`
 - `captured_at`
 - `captured_by`
+
+Carries a unique `(tenant_id, id)` so future child entities can reference an
+artifact through a tenant-pinned composite foreign key, matching every other
+tenant-scoped parent. A `note` artifact must have `body`.
 
 ### Customer
 Light-touch in v1.
