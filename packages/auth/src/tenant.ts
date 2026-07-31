@@ -12,10 +12,19 @@
 //   - `no_active_membership`→ memberships exist but none are `active`
 //   - `multiple_memberships`→ more than one active membership and the
 //                             caller did not specify a tenant
+//   - `preferred_tenant_unavailable`
+//                           → the caller named a tenant and the user has
+//                             no active membership in it
 //
 // The "multiple_memberships" case is intentionally surfaced as an error
 // rather than picking one. The product needs a deliberate tenant switcher
 // before we silently default someone into the wrong tenant.
+//
+// `preferredTenantId` is a constraint, not a hint. It is validated on
+// every path, including the single-membership one, so the guarantee
+// "you get the tenant you asked for, or an error" never depends on how
+// many memberships the user happens to have. Callers that genuinely mean
+// "any tenant will do" express that by omitting the field.
 
 import type {
   MembershipRole,
@@ -54,7 +63,8 @@ export type TenantContextErrorReason =
   | "no_user_row"
   | "no_membership"
   | "no_active_membership"
-  | "multiple_memberships";
+  | "multiple_memberships"
+  | "preferred_tenant_unavailable";
 
 export type TenantContextResult =
   | {
@@ -81,10 +91,10 @@ export type TenantContextInputs = {
   readonly loadTenant: (
     tenantId: string
   ) => Tenant | null | Promise<Tenant | null>;
-  // Optional caller-supplied tenant pick. When the user has multiple
-  // active memberships the caller may pass the chosen tenant id; if it
-  // matches an active membership we resolve to that one instead of
-  // erroring with `multiple_memberships`.
+  // Optional caller-supplied tenant pick. When supplied it constrains
+  // the result: we resolve to that tenant's active membership, or fail
+  // with `preferred_tenant_unavailable`. We never fall back to a
+  // different tenant. Omit it to mean "any active membership will do".
   readonly preferredTenantId?: string;
 };
 
@@ -108,15 +118,18 @@ export async function resolveTenantContext(
     return failure("no_active_membership", authUser, user, memberships);
   }
 
+  // Order matters: the caller's pick is a filter on the candidate set,
+  // not a tiebreaker applied only when the set is ambiguous. Checking it
+  // first is what makes the contract independent of `active.length`.
   let chosen: Membership;
-  if (active.length === 1) {
-    chosen = active[0]!;
-  } else if (preferredTenantId) {
+  if (preferredTenantId) {
     const match = active.find((m) => m.tenantId === preferredTenantId);
     if (!match) {
-      return failure("multiple_memberships", authUser, user, memberships);
+      return failure("preferred_tenant_unavailable", authUser, user, memberships);
     }
     chosen = match;
+  } else if (active.length === 1) {
+    chosen = active[0]!;
   } else {
     return failure("multiple_memberships", authUser, user, memberships);
   }
@@ -162,5 +175,7 @@ export function describeTenantContextError(
       return "Signed in, but no active tenant membership.";
     case "multiple_memberships":
       return "Signed in with multiple active memberships — tenant must be selected explicitly.";
+    case "preferred_tenant_unavailable":
+      return "Signed in, but the requested tenant is not available to this account.";
   }
 }

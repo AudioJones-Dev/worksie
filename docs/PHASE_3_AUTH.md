@@ -60,15 +60,23 @@ returns one of:
 
 | Outcome             | When                                                     |
 |---------------------|----------------------------------------------------------|
-| `ok: true`          | Single active membership, or `preferredTenantId` matches |
+| `ok: true`          | `preferredTenantId` matches an active membership, or none was supplied and exactly one membership is active |
 | `unauthenticated`   | No Supabase session                                      |
 | `no_user_row`       | Session present but no `public.users` row yet            |
 | `no_membership`     | User exists but zero memberships                         |
 | `no_active_membership` | All memberships are `invited` or `suspended`          |
 | `multiple_memberships` | More than one `active` membership and no preference   |
+| `preferred_tenant_unavailable` | `preferredTenantId` was supplied and the user has no `active` membership in it |
 
 `multiple_memberships` is deliberately an error rather than a silent
 pick. Phase 4+ will add an explicit tenant switcher.
+
+`preferredTenantId` is a **constraint, not a hint**. When supplied it is
+validated on every path — including the single-membership one — so the
+guarantee "you get the tenant you asked for, or an error" never depends
+on how many memberships the user happens to have. The resolver never
+falls back to a different tenant. Callers that mean "any active
+membership will do" express that by omitting the field.
 
 ## Protected route
 
@@ -172,6 +180,7 @@ A successful run prints `verify-rls: 8/8 passed` and exits 0.
 | Cross-tenant read                    | RLS policies (`0001_phase_2_rls_and_audit.sql`) + verified by `scripts/verify-rls`. |
 | Cross-tenant write                   | `WITH CHECK (tenant_id IN ...)` on every policy + verified by harness. |
 | Silent tenant pick across memberships| `resolveTenantContext` errors with `multiple_memberships` until the caller passes an explicit `preferredTenantId`. |
+| Stale tenant pin resolving to the wrong tenant | A supplied `preferredTenantId` is validated against active memberships on every path; a mismatch errors with `preferred_tenant_unavailable` rather than substituting the user's sole membership. |
 | `work_order_events` tamper           | RLS hides foreign rows; trigger raises even when RLS is bypassed. |
 | Stale session                        | `middleware.ts` calls `supabase.auth.getUser()` on every request, which rotates an expiring access token via `@supabase/ssr`'s cookie bridge. |
 | First-login bootstrap                | The `no_user_row` branch in the resolver communicates the missing `public.users` row explicitly instead of silently passing as unauthenticated. |

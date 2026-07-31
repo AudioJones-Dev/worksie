@@ -176,16 +176,31 @@ describe("resolveTenantContext", () => {
 
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.reason).toBe("multiple_memberships");
+    expect(result.reason).toBe("preferred_tenant_unavailable");
   });
 
-  it("ignores preferredTenantId when only one membership is active", async () => {
-    // Documents CURRENT behaviour, which is not obviously the desired one.
-    // The `active.length === 1` branch is taken before preferredTenantId is
-    // ever read, so a caller that explicitly asks for tenant-b is silently
-    // given tenant-a rather than being told the request was impossible.
-    // Left as-is deliberately: this PR establishes a test baseline and does
-    // not change behaviour. Change the test with the fix, not before it.
+  it("honours preferredTenantId when it matches the single active membership", async () => {
+    const result = await resolveTenantContext({
+      authUser: AUTH_USER,
+      user: APP_USER,
+      memberships: [membership({ id: "m-a", tenantId: "tenant-a" })],
+      loadTenant,
+      preferredTenantId: "tenant-a"
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.membership.id).toBe("m-a");
+    expect(result.tenant).toEqual(TENANT_A);
+  });
+
+  it("fails rather than substituting the sole active membership for a mismatched preferredTenantId", async () => {
+    // The guarantee is "you get the tenant you asked for, or an error",
+    // and it must not depend on how many memberships the user happens to
+    // have. A stale tenant pin (URL segment, cookie) after a membership
+    // move would otherwise land the caller in tenant-a while their pin
+    // still says tenant-b — the silent wrong-tenant default that Hard
+    // Rule #1 exists to prevent.
     const result = await resolveTenantContext({
       authUser: AUTH_USER,
       user: APP_USER,
@@ -194,9 +209,54 @@ describe("resolveTenantContext", () => {
       preferredTenantId: "tenant-b"
     });
 
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.tenant.id).toBe("tenant-a");
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("preferred_tenant_unavailable");
+  });
+
+  it("reports the same reason for a mismatched pick regardless of membership count", async () => {
+    // Guards the ordering fix directly: one cause, one reason. Before the
+    // fix these two shapes diverged (error vs. silent success).
+    const one = await resolveTenantContext({
+      authUser: AUTH_USER,
+      user: APP_USER,
+      memberships: [membership({ id: "m-a", tenantId: "tenant-a" })],
+      loadTenant,
+      preferredTenantId: "tenant-zzz"
+    });
+    const many = await resolveTenantContext({
+      authUser: AUTH_USER,
+      user: APP_USER,
+      memberships: [
+        membership({ id: "m-a", tenantId: "tenant-a" }),
+        membership({ id: "m-b", tenantId: "tenant-b" })
+      ],
+      loadTenant,
+      preferredTenantId: "tenant-zzz"
+    });
+
+    expect(one.ok).toBe(false);
+    expect(many.ok).toBe(false);
+    if (one.ok || many.ok) return;
+    expect(one.reason).toBe("preferred_tenant_unavailable");
+    expect(many.reason).toBe(one.reason);
+  });
+
+  it("does not resolve a preferred tenant the user is only inactively a member of", async () => {
+    const result = await resolveTenantContext({
+      authUser: AUTH_USER,
+      user: APP_USER,
+      memberships: [
+        membership({ id: "m-a", tenantId: "tenant-a" }),
+        membership({ id: "m-b", tenantId: "tenant-b", status: "suspended" })
+      ],
+      loadTenant,
+      preferredTenantId: "tenant-b"
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("preferred_tenant_unavailable");
   });
 
   it("collapses an unreadable tenant row into no_active_membership", async () => {
@@ -249,7 +309,8 @@ describe("describeTenantContextError", () => {
     "no_user_row",
     "no_membership",
     "no_active_membership",
-    "multiple_memberships"
+    "multiple_memberships",
+    "preferred_tenant_unavailable"
   ];
 
   it.each(reasons)("returns operator-facing copy for %s", (reason) => {
