@@ -2,6 +2,10 @@
 
 **Source:** https://companycam.com/features (+ `/advanced-features`)
 **Review date:** 2026-05-22
+**Companion doc:** [`competitor-companycam-engineering.md`](./competitor-companycam-engineering.md)
+— reads their public repos and Core API v2 spec rather than their marketing
+pages. It confirms §4b items 1–2 and adds two gaps not visible from the
+marketing surface (geofence verification, `work_order_events` webhooks).
 **Worksie sources of truth:** `docs/WORKSIE_SPINE.md`, `docs/PRD.md`,
 `docs/DOMAIN_MODEL.md`, `docs/WORK_ORDER_LIFECYCLE.md`,
 `docs/ONBOARDING_FLOWS.md`, `docs/PAYOUT_RULES.md`,
