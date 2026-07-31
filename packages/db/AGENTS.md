@@ -21,6 +21,10 @@ coordination contract.
 - Hand-written RLS, policy, audit, and append-only behavior belongs in
   Supabase SQL migrations and must not be skipped because Drizzle metadata
   exists.
+- Every migration must be journalled, hand-written ones included. `drizzle-kit`
+  derives the next filename prefix from the last `_journal.json` entry, so an
+  unjournalled migration causes the next generated file to reuse a prefix and
+  run out of order. See "Journal Adoption" in `packages/db/README.md`.
 - Do not weaken tenant boundaries, RLS assumptions, audit behavior, or schema
   hard rules without an explicit task spec.
 

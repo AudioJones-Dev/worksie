@@ -8,6 +8,20 @@
       "when": 1779021902134,
       "tag": "0000_phase_2_canonical_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779033248000,
+      "tag": "0001_phase_2_rls_and_audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1780874371000,
+      "tag": "0002_phase_2_schema_rls_hardening",
+      "breakpoints": true
     }
   ]
 }
