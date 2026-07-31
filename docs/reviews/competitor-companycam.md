@@ -1,5 +1,10 @@
 # Competitor Review — CompanyCam vs. Worksie
 
+**Scope:** the *marketed product* surface. For the *engineering* surface —
+public repos, inferred stack, live API and webhook inventory — see
+[`competitor-companycam-engineering.md`](./competitor-companycam-engineering.md),
+which supersedes the gap priority order in §4b below.
+
 **Source:** https://companycam.com/features (+ `/advanced-features`)
 **Review date:** 2026-05-22
 **Worksie sources of truth:** `docs/WORKSIE_SPINE.md`, `docs/PRD.md`,
@@ -111,6 +116,12 @@ The PRD already names these out of scope for v1. Leave as-is.
   Notes already exist as a proof-of-work kind.
 
 ### 4b. Real gaps worth landing post-Phase-3 (in priority order)
+
+> **Superseded ordering.** The engineering review re-ranks this list against
+> evidence from CompanyCam's repos and live API: tags move up (they ship two
+> separate taxonomies), e-sign moves up (their only path is a deprecated SDK
+> fork), and integrations move up with a concrete webhook contract to copy.
+> See [`competitor-companycam-engineering.md`](./competitor-companycam-engineering.md) §5.
 
 1. **Photo / artifact annotations.** Markup is proof-of-work
    clarity. A `proof_of_work_annotations` table or an annotation JSON
