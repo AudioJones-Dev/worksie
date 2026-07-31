@@ -148,7 +148,12 @@ Run from the repository root:
 ```bash
 pnpm lint
 pnpm build
+pnpm test
 ```
+
+`pnpm test` runs Vitest via Turbo. Packages with no tests yet declare no `test`
+script and are skipped — do not add a placeholder that always passes, because a
+green step that asserts nothing is worse than a missing one.
 
 If the local `pnpm` shim is unavailable or broken, `npm run lint` and
 `npm run build` are acceptable validation fallbacks because they delegate to
