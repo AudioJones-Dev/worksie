@@ -6,6 +6,11 @@
 //   - tenant_id is NOT NULL everywhere.
 //   - work_orders.service_snapshot_json is NOT NULL (frozen at creation).
 //   - work_order_events.reason is required when to_state ∈ {cancelled, voided}.
+//   - proof_of_work_artifacts.body is required when kind = 'note'.
+//   - updated_at exists on every table except work_order_events, which is
+//     append-only by trigger and already carries `at`. The BEFORE UPDATE
+//     triggers that maintain it are in the Phase 3.5 SQL migration, since
+//     Drizzle cannot emit triggers.
 //   - Tenant integrity: references between two tenant-scoped tables are
 //     COMPOSITE foreign keys on (tenant_id, id), so a row can never point at a
 //     row in another tenant. Each referenced parent therefore carries a
@@ -36,6 +41,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import {
+  artifactProcessingStatusEnum,
   contractorDocumentStatusEnum,
   membershipRoleEnum,
   membershipStatusEnum,
@@ -52,7 +58,8 @@ export const tenants = pgTable("tenants", {
   name: text().notNull(),
   timezone: text().notNull(),
   defaultPayoutPeriod: text().notNull().default("weekly_mon_sun"),
-  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+  createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
 });
 
 // 2. User — human with login credentials, 1:1 with Supabase auth.users.
@@ -65,7 +72,8 @@ export const users = pgTable(
     email: text().notNull(),
     displayName: text(),
     phone: text(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     uniqueIndex("users_auth_user_id_unique").on(t.authUserId),
@@ -86,7 +94,8 @@ export const memberships = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
     role: membershipRoleEnum().notNull(),
     status: membershipStatusEnum().notNull().default("invited"),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     uniqueIndex("memberships_tenant_user_unique").on(t.tenantId, t.userId),
@@ -108,7 +117,8 @@ export const safetyPacks = pgTable(
     name: text().notNull(),
     version: integer().notNull().default(1),
     contentRef: text(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     index("safety_packs_tenant_idx").on(t.tenantId),
@@ -138,7 +148,8 @@ export const businessProfiles = pgTable(
     // FK to safety_packs is composite + ON DELETE SET NULL (default_safety_pack_id)
     // and lives in 0002 (Drizzle can't emit column-scoped SET NULL).
     defaultSafetyPackId: uuid(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     index("business_profiles_tenant_idx").on(t.tenantId),
@@ -158,7 +169,8 @@ export const documentTypes = pgTable(
     appliesTo: text().notNull(),
     expirable: boolean().notNull().default(false),
     gating: boolean().notNull().default(false),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     index("document_types_tenant_idx").on(t.tenantId),
@@ -186,7 +198,8 @@ export const payoutRules = pgTable(
       .$type<Record<string, unknown>>()
       .notNull()
       .default(sql`'{}'::jsonb`),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     index("payout_rules_tenant_idx").on(t.tenantId),
@@ -216,7 +229,8 @@ export const checklistTemplates = pgTable(
       >()
       .notNull()
       .default(sql`'[]'::jsonb`),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     index("checklist_templates_tenant_idx").on(t.tenantId),
@@ -251,7 +265,8 @@ export const serviceDefinitions = pgTable(
       .notNull()
       .default(sql`'[]'::jsonb`),
     customerSignoffRequired: boolean().notNull().default(false),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     index("service_definitions_tenant_idx").on(t.tenantId),
@@ -278,7 +293,8 @@ export const customers = pgTable(
     phone: text(),
     email: text(),
     address: text(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     index("customers_tenant_idx").on(t.tenantId),
@@ -299,11 +315,15 @@ export const workOrders = pgTable(
     customerId: uuid().notNull(),
     address: text(),
     gps: jsonb().$type<{ lat: number; lng: number }>(),
+    // Expected capture radius in metres. Storage only — no behavior reads it
+    // yet. See docs/roadmap/CAPTURE_INTEGRITY.md.
+    geofenceRadiusM: integer(),
     scheduledFor: timestamp({ withTimezone: true }),
     // Composite + ON DELETE SET NULL FK to memberships lives in 0002.
     assignedContractorMembershipId: uuid(),
     status: workOrderStateEnum().notNull().default("draft"),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     createdBy: uuid().references(() => users.id, { onDelete: "set null" })
   },
   (t) => [
@@ -343,7 +363,8 @@ export const workOrderLineItems = pgTable(
     unit: text().notNull().default("each"),
     pieceRateAmount: numeric({ precision: 12, scale: 2 }),
     completedAt: timestamp({ withTimezone: true }),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     unique("work_order_line_items_tenant_id_id_unique").on(t.tenantId, t.id),
@@ -400,7 +421,8 @@ export const checklistInstances = pgTable(
       .references(() => tenants.id, { onDelete: "cascade" }),
     workOrderId: uuid().notNull(),
     checklistTemplateId: uuid().notNull(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     unique("checklist_instances_tenant_id_id_unique").on(t.tenantId, t.id),
@@ -433,7 +455,11 @@ export const checklistSteps = pgTable(
     requiresPhoto: boolean().notNull().default(false),
     requiresSignature: boolean().notNull().default(false),
     completedAt: timestamp({ withTimezone: true }),
-    completedBy: uuid().references(() => users.id, { onDelete: "set null" })
+    completedBy: uuid().references(() => users.id, { onDelete: "set null" }),
+    // No createdAt on this table; steps are materialised from a template with
+    // the parent instance. updatedAt still applies — checklist_steps is a
+    // Class B sync table and mobile mutates completedAt/completedBy.
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     unique("checklist_steps_tenant_id_id_unique").on(t.tenantId, t.id),
@@ -465,21 +491,41 @@ export const proofOfWorkArtifacts = pgTable(
     kind: proofOfWorkKindEnum().notNull(),
     fileId: text(),
     localFileUri: text(),
+    // SHA-256 hex of the file bytes. Makes upload retry idempotent and enables
+    // dedup. Indexed but deliberately NOT unique — the same file may
+    // legitimately attach to more than one work order.
+    contentHash: text(),
+    // Upload-queue stage. Before this column existed, a row's stage had to be
+    // inferred from which of file_id / local_file_uri happened to be null,
+    // which cannot distinguish "not started" from "failed".
+    processingStatus: artifactProcessingStatusEnum().notNull().default("pending"),
+    // Note text when kind = 'note'; optional caption otherwise.
+    body: text(),
     gps: jsonb().$type<{ lat: number; lng: number }>(),
     capturedAt: timestamp({ withTimezone: true }).notNull(),
     capturedBy: uuid().references(() => users.id, { onDelete: "set null" }),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
+    // Required so future children (annotations, tags) can reference an artifact
+    // through a tenant-pinned composite FK, matching every other tenant-scoped
+    // parent. Without it nothing can reference this table at all.
+    unique("proof_of_work_artifacts_tenant_id_id_unique").on(t.tenantId, t.id),
     foreignKey({
       name: "pow_artifacts_work_order_fk",
       columns: [t.tenantId, t.workOrderId],
       foreignColumns: [workOrders.tenantId, workOrders.id]
     }).onDelete("cascade"),
+    check(
+      "proof_of_work_artifacts_note_requires_body",
+      sql`${t.kind} <> 'note' OR ${t.body} IS NOT NULL`
+    ),
     index("proof_of_work_artifacts_tenant_idx").on(t.tenantId),
     index("proof_of_work_artifacts_work_order_idx").on(t.workOrderId),
     index("proof_of_work_artifacts_captured_by_idx").on(t.capturedBy),
-    index("proof_of_work_artifacts_step_idx").on(t.checklistStepId)
+    index("proof_of_work_artifacts_step_idx").on(t.checklistStepId),
+    index("proof_of_work_artifacts_content_hash_idx").on(t.contentHash)
   ]
 );
 
@@ -496,7 +542,8 @@ export const customerSignoffs = pgTable(
     signedAt: timestamp({ withTimezone: true }).notNull(),
     signatureFileId: text().notNull(),
     signedName: text().notNull(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     foreignKey({
@@ -525,7 +572,8 @@ export const contractorDocuments = pgTable(
     verifiedBy: uuid().references(() => users.id, { onDelete: "set null" }),
     verifiedAt: timestamp({ withTimezone: true }),
     status: contractorDocumentStatusEnum().notNull().default("pending"),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     foreignKey({
@@ -558,7 +606,8 @@ export const safetyAcknowledgements = pgTable(
     safetyPackId: uuid().notNull(),
     signedAt: timestamp({ withTimezone: true }).notNull(),
     signatureFileId: text(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     foreignKey({
@@ -595,7 +644,8 @@ export const payoutPeriods = pgTable(
     cutoffAt: timestamp({ withTimezone: true }).notNull(),
     paidOn: timestamp({ withTimezone: true }),
     status: payoutPeriodStatusEnum().notNull().default("open"),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     index("payout_periods_tenant_idx").on(t.tenantId),
@@ -624,7 +674,8 @@ export const payoutLines = pgTable(
     workOrderLineItemId: uuid(),
     amount: numeric({ precision: 14, scale: 2 }).notNull(),
     computedFrom: uuid(),
-    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow()
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow()
   },
   (t) => [
     foreignKey({
