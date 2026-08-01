@@ -17,17 +17,30 @@ config change does not retroactively rewrite history.
 
 ### Common columns
 
-Every entity below carries `tenant_id` (Hard Rule #1) and `created_at`. The
-per-entity lists omit `tenant_id` only where it is already shown.
+**`tenant_id` — every entity except two.** Hard Rule #1 governs tenant-scoped
+rows. Two entities are deliberately outside it:
 
-Every entity also carries `updated_at`, maintained by a database trigger, with
-one exception: **`Work Order Event` has none.** It is append-only by trigger and
-already carries `at`, so a mutable timestamp on it would be dead weight and
-would imply an update path that does not exist.
+- **`Tenant`** is the scope itself and cannot carry a reference to one.
+- **`User`** is **global by design** — one login may hold memberships in several
+  tenants, and its tenant associations live entirely on `Membership`. Giving
+  `User` a `tenant_id` would break the multi-tenancy model, not enforce it.
 
-`updated_at` is not cosmetic. `OFFLINE_FIRST_ARCHITECTURE.md` resolves Class B
-conflicts by last-writer-wins per field, which requires a server-side change
-marker to compare against.
+Every *other* entity carries `tenant_id`. The per-entity lists omit it only
+where it is already shown.
+
+**`created_at`** — on every entity.
+
+**`updated_at`** — on every entity except **`Work Order Event`**, which is
+append-only by trigger and already carries `at`; a mutable timestamp there would
+imply an update path that does not exist. Maintained by a `BEFORE UPDATE`
+trigger, server-side, because device clocks are display-only
+(`OFFLINE_FIRST_ARCHITECTURE.md` §Authority Rules).
+
+`updated_at` is a **row-level** change marker. It supports row-level
+last-writer-wins. It does **not** by itself support per-field resolution — that
+needs per-field version or timestamp metadata, which does not exist today. See
+`OFFLINE_FIRST_ARCHITECTURE.md` §Class B for the conflict rule as it actually
+stands.
 
 ### Tenant
 The top-level container. Every row in Worksie belongs to exactly one tenant.

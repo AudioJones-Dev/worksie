@@ -45,13 +45,30 @@ Examples: `WorkOrder`, `WorkOrderLineItem`, `ChecklistInstance`,
 - Mobile writes are scoped: only the assigned contractor can mutate, and
   only specific fields (`status`, `completed_at`, `completed_by`, GPS,
   line-item `quantity`).
-- Conflict rule: **last-writer-wins per field**, with server-side guard
-  that rejects illegal state transitions (see
-  `WORK_ORDER_LIFECYCLE.md`).
-- "Last writer" is decided against `updated_at`, maintained by a database
-  trigger on every table except `WorkOrderEvent` (append-only, already has
-  `at`). Without it there is no server-side change marker to compare, and
-  this rule is unimplementable.
+- Conflict rule: **last-writer-wins at row level**, with a server-side guard
+  that rejects illegal state transitions (see `WORK_ORDER_LIFECYCLE.md`).
+- "Last writer" is decided against `updated_at`, maintained by a `BEFORE
+  UPDATE` trigger on every table except `WorkOrderEvent` (append-only, already
+  has `at`). It is set server-side, never by the client, because device clocks
+  are display-only per §Authority Rules — a skewed clock must not be able to
+  win a conflict it should lose.
+
+> **Scope of the guarantee — read this before relying on it.** `updated_at` is
+> a single row-level marker. It can decide *which row write landed last*. It
+> **cannot** merge two clients that edited different fields of the same row:
+> the later write wins the whole row and the earlier client's field is lost.
+>
+> True per-field last-writer-wins requires per-field version or timestamp
+> metadata, which **does not exist in the schema today**. Earlier drafts of
+> this document and of `DOMAIN_MODEL.md` claimed per-field resolution; that
+> was wrong and is corrected here.
+>
+> Row-level is the deliberate v1 position. The mobile write surface for Class B
+> is deliberately narrow — `status`, `completed_at`, `completed_by`, GPS,
+> line-item `quantity` — and two contractors editing different fields of the
+> same work order concurrently is not a scenario v1 needs to merge. Revisit if
+> that assumption breaks; the cost is a per-field metadata column or a CRDT,
+> and neither is worth carrying before the pilot proves the need.
 - Reassignment is a server-side action; mobile cannot change
   `assigned_contractor_membership_id`.
 
