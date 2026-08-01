@@ -96,7 +96,10 @@ Photos and signatures are the bandwidth-heavy artifacts. The flow:
    (SHA-256) over the bytes.
 2. Mobile inserts `ProofOfWorkArtifact` row in local SQLite with
    `local_file_uri` and `content_hash` set, `file_id` null, and
-   `processing_status = pending`.
+   `processing_status = pending`. **The schema must permit `file_id = null`** —
+   the row deliberately precedes its bytes, and a `NOT NULL` constraint would
+   make offline capture impossible. `file_id` is non-null exactly when
+   `processing_status = stored`.
 3. PowerSync replicates the row up. Server sees a row referencing a file
    that isn't in Storage yet — fine.
 4. A background upload worker on mobile pushes bytes to Supabase Storage
@@ -112,9 +115,25 @@ be null, which cannot distinguish "not started" from "failed".
 
 `content_hash` is what makes retry **idempotent**: a worker that dies
 mid-upload and restarts can recognise bytes already in Storage instead of
-re-uploading them, and the server can reject a duplicate write. It is indexed
-but deliberately **not unique** — the same photo may legitimately attach to two
-work orders.
+re-uploading them. It is indexed but deliberately **not unique** — the same
+photo may legitimately attach to two work orders.
+
+**Upload idempotency and artifact-row duplication are different problems**, and
+an earlier draft ran them together by saying the server "rejects a duplicate
+write" while also declaring `content_hash` non-unique. Both cannot be true of
+the same rule. What actually holds:
+
+- **Upload idempotency** is keyed on `(tenant_id, artifact_id, content_hash)`.
+  It answers "have *these bytes, for this row* already been stored?", which is
+  what makes a resumed or retried upload safe. Enforced by the upload worker
+  and the Storage write path — not by a table constraint.
+- **Duplicate artifact rows are legitimate** and are not rejected. The same
+  photo attached to two work orders, or to two steps of one, is a real case.
+  This is why `content_hash` is indexed rather than unique.
+- The only duplicate worth catching is a **repeated Storage write for an
+  `artifact_id` already `stored`**. That is a no-op, and the worker should
+  treat it as success, so a retry after a lost acknowledgement converges
+  instead of failing.
 
 ## Authority Rules
 

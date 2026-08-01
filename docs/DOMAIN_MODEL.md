@@ -185,7 +185,10 @@ Append-only. Survives `cancelled` and `voided`. Never updated or deleted.
 - `work_order_id`
 - `checklist_step_id` (nullable)
 - `kind` ∈ {`photo`, `video`, `audio`, `signature`, `pdf`, `note`}
-- `file_id` (Supabase Storage)
+- `file_id` (Supabase Storage; **nullable** — the row is created before its
+  bytes exist. Non-null exactly when `processing_status = stored`; null while
+  `pending`, `uploading`, or `failed`. A `NOT NULL` here would make offline
+  capture impossible. See `OFFLINE_FIRST_ARCHITECTURE.md` §File Upload Queue.)
 - `local_file_uri` (nullable; set on device until the upload completes)
 - `content_hash` (nullable; SHA-256 hex of the file bytes. Makes upload retry
   idempotent and enables dedup. Indexed, **not** unique — the same file may
