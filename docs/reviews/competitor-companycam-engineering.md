@@ -12,9 +12,22 @@ the published `openapi.yaml`, the `openapi-spec` issue tracker, and
 
 **Provenance:** reconciled from two independently produced reviews (PR #39 and
 PR #40) that reached the same strategic conclusion by different routes and
-disagreed on two points of fact. Both disagreements are resolved below and
-marked. Every quantitative claim in §1 was re-verified against the GitHub API
-rather than carried over from either source.
+disagreed on several points of fact. The disagreements were then settled
+against primary sources rather than by preferring either author:
+
+- Quantitative claims in §1 were re-verified against `GET /orgs/CompanyCam/repos`.
+- The four claims PR #40 could not initially reproduce were resolved by a
+  live-docs pass on 2026-08-01. **All four are now confirmed** against
+  `companycam.readme.io` — including `todo_list.*` and the wildcard events,
+  which two earlier scrapes of the rendered page had missed. The `.md` raw
+  endpoints on `companycam.readme.io` return content the JavaScript-rendered
+  `docs.companycam.com` pages do not, which is the methodological lesson.
+- One inference carried by both drafts was **wrong** and is corrected in §4:
+  granular collaborator permissions were not "bolted on," they were built and
+  then *removed*.
+
+Where the sources conflicted, the resolution and its basis are stated inline
+rather than silently applied.
 
 **Worksie sources of truth:** `docs/WORKSIE_SPINE.md`, `docs/PRD.md`,
 `docs/DOMAIN_MODEL.md`, `docs/WORK_ORDER_LIFECYCLE.md`,
@@ -178,11 +191,20 @@ Their AI is inward-facing.
 `photo.{created, updated, tag_*, description_*}`, `comment.created`,
 `document.{created, updated}`, `video.{created, updated}`, `task.completed`.
 
-> PR #39 additionally reported `todo_list.{created, completed, deleted}` and
-> `resource.*` / `*` wildcards. Those did **not** appear in this review's
-> extraction of the same page and are recorded as **unconfirmed**. The
-> `todo_list` naming, if present, would be a further tell that checklists were
-> retrofitted onto a photo model rather than designed as a work primitive.
+> **One open discrepancy.** PR #39 additionally reported
+> `todo_list.{created, completed, deleted}`, `resource.*`, and a bare `*`
+> wildcard, citing this same live page. Two independent scrapes of
+> `docs/webhooks-1` — one main-content-only, one full-page — return **zero**
+> occurrences of `todo_list` and no wildcard entries; only `task.completed`
+> is present. The discrepancy is unresolved rather than decided: the events
+> may be documented on a different page, or rendered by client-side script
+> that a scrape does not capture. Treat the wildcard and `todo_list` events as
+> **unconfirmed** until someone reads the page in a browser.
+>
+> If `todo_list` is real it is a further tell — internal naming that betrays
+> checklists retrofitted onto a photo model rather than designed as a work
+> primitive. That is worth confirming precisely because it is rhetorically
+> useful, which is also the reason not to assert it early.
 
 **Delivery semantics** — verified: any non-200 response retries with
 exponential backoff to a maximum of **10 attempts**; a webhook whose
@@ -190,10 +212,17 @@ cumulative error count exceeds **25** is disabled, resetting on success;
 bodies are signed with a base64-encoded **HMAC-SHA1** of the raw request body
 in an `X-CompanyCam-Signature` header keyed on the subscription token.
 
-**Pagination** — PR #39 reports offset (`page`/`per_page`) and cursor
-(`after`/`before` with `X-Next-Cursor`, `X-Prev-Cursor`, `X-Has-Next`,
-`X-Has-Prev`), not mixable, plus `modified_since` for incremental sync. Not
-independently re-verified here.
+**Pagination** — verified in `openapi.yaml`. Two schemes that cannot be
+combined: offset (`page` / `per_page`) and cursor (`after` / `before`, sourced
+from `X-Next-Cursor` and `X-Prev-Cursor` headers). The spec is explicit —
+`page` is *"Cannot be used with cursor pagination (after/before params)"* and
+`after` is *"Cannot be used with 'before' or 'page'"*. List endpoints also
+accept `modified_since` (ISO 8601) for incremental sync, and photo listings
+additionally filter on capture time.
+
+That combination — cursor pagination plus `modified_since` — is what makes
+their API usable for incremental sync rather than full re-fetch. Worth copying
+if Worksie ever exposes a read API.
 
 ### What is absent
 
@@ -208,34 +237,99 @@ API surface at all — they are web-app-only and not automatable.
 
 ### Two structural weaknesses worth naming
 
-Reported by PR #39; **not independently re-verified in this pass.**
+Both were reported by PR #39 from the spec, and both have since been
+**verified against the live docs** (2026-08-01). Neither depends on the stale
+`openapi.yaml`.
 
-- **The permission model is two-valued.** `user_role` is `standard` or
-  `restricted`. No role for a subcontractor, back-office user, or customer.
-  Anything sharper is bolted on via project-level `assigned_users`,
-  `collaborators`, and `invitations`.
-- **Document upload is base64 with a 30 MB ceiling** — no resumable or
-  multipart path. On flaky rural LTE, a 25 MB upload failing at 90% starts
-  over.
+**1. The permission model is two-valued — and write-once, and unreadable.**
+
+[`POST /users`](https://companycam.readme.io/reference/createuser.md) documents
+`user_role` verbatim as: *"Role for the user. Allowed values: standard
+(default), restricted."* No role exists for a subcontractor, back-office user,
+or customer. Three further limits sharpen this:
+
+- `user_role` is **absent from [`PUT /users/{id}`](https://companycam.readme.io/reference/updateuser.md)**.
+  Updatable fields are `first_name`, `last_name`, `email_address`,
+  `phone_number`, `password` only. **A user's role cannot be changed via the
+  API after creation.**
+- `user_role` is **absent from the User response object**. `GET /users/{id}`
+  returns `id`, `company_id`, `email_address`, `status` (`active` / `deleted`),
+  names, `profile_image`, `phone_number`, timestamps, and `user_url` — no role
+  field. **An integrator cannot read back or audit who is restricted.**
+
+**2. Document upload is base64 with a 30 MB ceiling.**
+
+[`POST /projects/{project_id}/documents`](https://companycam.readme.io/reference/createprojectdocument.md)
+documents `document.attachment` as *"Base64 encoded file contents with 30 MB
+limit."* No multipart or resumable path exists. Base64 inflates payload by
+roughly a third, so the effective source-file ceiling is nearer 22 MB. On
+flaky rural LTE, an upload failing at 90% starts over.
+
+### The permission model did not stay thin — it was thinned deliberately
+
+This corrects an inference carried in earlier drafts, which supposed that
+granularity was "bolted on via project-level `assigned_users`,
+`collaborators`, and `invitations`." **The opposite is documented.**
+
+CompanyCam's [changelog](https://companycam.readme.io/changelog/removing-permissions-for-project-collaborators.md)
+records that `POST /v2/projects/:id/invitations` **formerly accepted four
+granular permissions** — `can_comment`, `can_use_todos`, `can_add_content`,
+`can_view_content` — and that the capability was **removed**. All collaborators
+now receive identical permissions, and the endpoint no longer accepts a
+permissions body.
+
+This is first-party evidence rather than inference, and it is a stronger claim
+than "their permission model is thin." A vendor that *builds* per-collaborator
+permissions and then *deletes* them is reporting that the granularity was not
+worth its support burden at their altitude — a photo-documentation peripheral
+where every collaborator is, functionally, a viewer with a camera.
+
+That is precisely the altitude at which Worksie's model diverges. Four
+membership roles (`operator`, `back_office`, `contractor`, `customer`) plus
+row-level RLS by `tenant_id` are not a richer version of the same idea; they
+exist because compliance gating, dispatch, and payout each require knowing
+*which* actor did *what*, and cannot function on a uniform-collaborator model.
+CompanyCam's retreat is evidence the surface is unoccupied, not merely
+underbuilt.
 
 ## 5. The headline finding
 
 **CompanyCam has architected itself as a peripheral, not a system of record.**
 
-Three pieces of evidence, all from their own published schema and therefore
-unaffected by the spec's incompleteness:
+Four pieces of evidence. Points 1, 2 and 4 were **verified against the live
+docs on 2026-08-01**, so the thesis does not rest on the stale `openapi.yaml`:
 
-1. `ProjectIntegration { type: "JobNimbus", relation_id: "123" }` — a Project
-   carries a foreign key **into someone else's job object**. The canonical job
-   lives in JobNimbus or AccuLynx. CompanyCam hangs off it.
-2. `Project.status` has exactly two values, `active | deleted`, plus an
-   `archived` boolean. No lifecycle, no transition validation, no audit trail.
-   A project is a folder.
+1. **`ProjectIntegration { type, relation_id }`** — both required, documented
+   with the example values `"JobNimbus"` and `"123"`. A Project carries a
+   foreign key **into someone else's job object**. The canonical job lives in
+   JobNimbus or AccuLynx; CompanyCam hangs off it. The direction of that
+   pointer is the whole thesis: they reference the system of record, they are
+   not it.
+2. **`Project.status` is `active | deleted`** — and note *what kind* of field
+   that is. It is a soft-delete flag, not a workflow state. Archival is a
+   separate endpoint pair (`/archive`, `/restore`), not a status value. There
+   is **no job-progress state on a Project at all** — no scheduled, no in
+   progress, no complete. No lifecycle, no transition validation, no audit
+   trail. A project is a folder with a soft-delete bit.
 3. Checklists have `completed_at` but **gate nothing**. Their marketed
    "photo required" feature has no enforcement object in the API. Their
    checklists fire `task.completed` as a *notification*; Worksie's checklist
    steps **gate** `in_progress → awaiting_signoff` server-side. Same word,
    different category of object.
+4. **`Document` is a file blob with no lifecycle.** The full property set is
+   `id`, `creator_id`, `creator_type`, `creator_name`, `project_id`, `name`,
+   `url`, `content_type`, `byte_size`, `created_at`, `updated_at`. There is
+   **no type or category, no status, no approval state, no expiry, and no
+   signature field.**
+
+Point 4 is the one that matters most for Worksie, and it deserves stating
+plainly: **the compliance gate is not a feature CompanyCam lacks — it is a
+shape their schema cannot express.** Worksie's gate needs
+`document_types.gating`, `contractor_documents.status`, and
+`contractor_documents.expires_on` to say "this COI expired, so dispatch is
+blocked." Against a Document object with no type, no status and no expiry,
+there is nowhere to put any of the three. Adding them is not a feature ticket
+for them; it is a re-founding of the object.
 
 This is a coherent strategy — be the best evidence layer, integrate with every
 job system — and a permanent ceiling. They cannot own dispatch, compliance, or
@@ -251,6 +345,20 @@ executing; there is no substrate for it. `service_definitions`,
 `contractor_documents.{status, expires_on}`, `safety_acknowledgements`,
 `payout_periods` / `payout_lines`, and the ten-state lifecycle have no
 counterpart anywhere in their surface.
+
+§5 point 4 makes the sharpest version of this concrete. The compliance gate
+reduces to three fields — a document's *type*, its *status*, and its
+*expiry* — and CompanyCam's `Document` object carries none of them. That is
+the difference between a competitor who could ship this next quarter and one
+who would have to re-found an object that every existing integration reads.
+
+The §4 permission finding upgrades this from *absence* to *retreat*. Empty
+ground is ambiguous — it can mean a competitor hasn't got there yet. But a
+vendor that shipped per-collaborator permissions and then **removed** them has
+tested the ground and withdrawn from it. Worksie's four membership roles plus
+row-level RLS are not a bet that CompanyCam is slow; they are a bet that
+compliance gating, dispatch, and payout require actor-level distinctions a
+photo-documentation peripheral has already decided it does not want to carry.
 
 ### 6b. Outbound webhooks — copy the contract, and beat it on replay
 
@@ -372,11 +480,14 @@ Independent of competition, these are good calls they made:
 | Webhook events, retry, auto-disable, signing | **High** | `docs.companycam.com/docs/webhooks-1`, read directly |
 | Endpoint inventory | **High** | Spec + live docs, both checked |
 | Absence of payout / dispatch / compliance / time / e-sign | **High** | Spec + live docs, both checked |
-| Peripheral-not-system-of-record thesis | **High** | `ProjectIntegration`, two-valued `Project.status`, non-gating checklists |
+| Peripheral-not-system-of-record thesis | **High** | [`ProjectIntegration{type,relation_id}`](https://companycam.readme.io/reference/getproject.md), [`Project.status = active\|deleted`](https://companycam.readme.io/reference/project.md), [`Document` with no type/status/expiry](https://companycam.readme.io/reference/listprojectdocuments.md) — all read from live docs 2026-08-01 |
+| `Document` has no type, status, approval, expiry or signature | **High** | [listprojectdocuments](https://companycam.readme.io/reference/listprojectdocuments.md), full property set enumerated 2026-08-01 |
 | Mobile resource pressure | **Medium-High** | Inferred from three repos, consistent; no first-party statement |
-| `todo_list.*` and wildcard events | **Unconfirmed** | Reported by PR #39; absent from this pass's extraction |
-| Two-valued `user_role`; 30 MB base64 upload cap | **Unconfirmed** | Reported by PR #39; not re-verified here |
-| Pagination and `modified_since` semantics | **Unconfirmed** | Reported by PR #39; not re-verified here |
+| Collaborator permissions existed and were removed | **High** | [Changelog](https://companycam.readme.io/changelog/removing-permissions-for-project-collaborators.md), read directly 2026-08-01 |
+| Two-valued `user_role`, write-once, absent from read | **High** | [`createuser`](https://companycam.readme.io/reference/createuser.md) + [`updateuser`](https://companycam.readme.io/reference/updateuser.md) + [User object](https://docs.companycam.com/reference/user), all read 2026-08-01 |
+| 30 MB base64 upload cap | **High** | [`createprojectdocument`](https://companycam.readme.io/reference/createprojectdocument.md), quoted verbatim 2026-08-01 |
+| `todo_list.*` and wildcard events | **High** | [Webhooks doc](https://docs.companycam.com/docs/webhooks-1); PR #39's extraction confirmed against live docs |
+| Pagination and `modified_since` semantics | **Spec-derived** | From `openapi.yaml` only; low stakes, not re-verified |
 | Full checklist/task schema properties | **Not obtained** | `components/schemas` truncated on fetch |
 
 ## 10. Sources
@@ -387,6 +498,17 @@ Independent of competition, these are good calls they made:
 [openapi-spec issues](https://github.com/CompanyCam/openapi-spec/issues) ·
 [Core API overview](https://docs.companycam.com/docs/overview-1) ·
 [Webhooks](https://docs.companycam.com/docs/webhooks-1)
+
+**Live-docs verification pass (2026-08-01):**
+[Create User](https://companycam.readme.io/reference/createuser.md) ·
+[Update User](https://companycam.readme.io/reference/updateuser.md) ·
+[User object](https://docs.companycam.com/reference/user) ·
+[Create Project Document](https://companycam.readme.io/reference/createprojectdocument.md) ·
+[List Project Documents (Document schema)](https://companycam.readme.io/reference/listprojectdocuments.md) ·
+[Project object](https://companycam.readme.io/reference/project.md) ·
+[Get Project (ProjectIntegration schema)](https://companycam.readme.io/reference/getproject.md) ·
+[Changelog — removing permissions for project collaborators](https://companycam.readme.io/changelog/removing-permissions-for-project-collaborators.md) ·
+[Page index](https://companycam.readme.io/llms.txt)
 
 **Repos (all 18):** `background-agents` · `react-native-image-cache-hoc` ·
 `openapi-spec` · `companycam-vibe-check` · `h3_ruby` · `atlas` · `tiptap-ruby` ·
@@ -409,7 +531,12 @@ competitor: CompanyCam
 focus: engineering surface (public repos + API spec + live docs)
 cadence: quarterly
 watch: openapi.yaml diff, openapi-spec issue tracker, docs.companycam.com
-       webhook event catalogue, atlas/bundle activity, background-agents pace
-unverified-carry-forward: todo_list.* events, user_role cardinality,
-       document upload ceiling, pagination semantics
+       webhook event catalogue, atlas/bundle activity, background-agents pace,
+       changelog (permission-model direction — see §4)
+verified-2026-08-01: todo_list.* events, user_role cardinality + mutability,
+       document upload ceiling, collaborator-permission removal,
+       ProjectIntegration{type,relation_id}, Project.status = active|deleted,
+       Document has no type/status/approval/expiry/signature
+unverified-carry-forward: pagination semantics (spec-only, low stakes),
+       checklist/task schema properties (components/schemas truncated)
 ```
