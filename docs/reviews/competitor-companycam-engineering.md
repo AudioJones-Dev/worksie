@@ -208,15 +208,60 @@ API surface at all — they are web-app-only and not automatable.
 
 ### Two structural weaknesses worth naming
 
-Reported by PR #39; **not independently re-verified in this pass.**
+Both were reported by PR #39 from the spec, and both have since been
+**verified against the live docs** (2026-08-01). Neither depends on the stale
+`openapi.yaml`.
 
-- **The permission model is two-valued.** `user_role` is `standard` or
-  `restricted`. No role for a subcontractor, back-office user, or customer.
-  Anything sharper is bolted on via project-level `assigned_users`,
-  `collaborators`, and `invitations`.
-- **Document upload is base64 with a 30 MB ceiling** — no resumable or
-  multipart path. On flaky rural LTE, a 25 MB upload failing at 90% starts
-  over.
+**1. The permission model is two-valued — and write-once, and unreadable.**
+
+[`POST /users`](https://companycam.readme.io/reference/createuser.md) documents
+`user_role` verbatim as: *"Role for the user. Allowed values: standard
+(default), restricted."* No role exists for a subcontractor, back-office user,
+or customer. Three further limits sharpen this:
+
+- `user_role` is **absent from [`PUT /users/{id}`](https://companycam.readme.io/reference/updateuser.md)**.
+  Updatable fields are `first_name`, `last_name`, `email_address`,
+  `phone_number`, `password` only. **A user's role cannot be changed via the
+  API after creation.**
+- `user_role` is **absent from the User response object**. `GET /users/{id}`
+  returns `id`, `company_id`, `email_address`, `status` (`active` / `deleted`),
+  names, `profile_image`, `phone_number`, timestamps, and `user_url` — no role
+  field. **An integrator cannot read back or audit who is restricted.**
+
+**2. Document upload is base64 with a 30 MB ceiling.**
+
+[`POST /projects/{project_id}/documents`](https://companycam.readme.io/reference/createprojectdocument.md)
+documents `document.attachment` as *"Base64 encoded file contents with 30 MB
+limit."* No multipart or resumable path exists. Base64 inflates payload by
+roughly a third, so the effective source-file ceiling is nearer 22 MB. On
+flaky rural LTE, an upload failing at 90% starts over.
+
+### The permission model did not stay thin — it was thinned deliberately
+
+This corrects an inference carried in earlier drafts, which supposed that
+granularity was "bolted on via project-level `assigned_users`,
+`collaborators`, and `invitations`." **The opposite is documented.**
+
+CompanyCam's [changelog](https://companycam.readme.io/changelog/removing-permissions-for-project-collaborators.md)
+records that `POST /v2/projects/:id/invitations` **formerly accepted four
+granular permissions** — `can_comment`, `can_use_todos`, `can_add_content`,
+`can_view_content` — and that the capability was **removed**. All collaborators
+now receive identical permissions, and the endpoint no longer accepts a
+permissions body.
+
+This is first-party evidence rather than inference, and it is a stronger claim
+than "their permission model is thin." A vendor that *builds* per-collaborator
+permissions and then *deletes* them is reporting that the granularity was not
+worth its support burden at their altitude — a photo-documentation peripheral
+where every collaborator is, functionally, a viewer with a camera.
+
+That is precisely the altitude at which Worksie's model diverges. Four
+membership roles (`operator`, `back_office`, `contractor`, `customer`) plus
+row-level RLS by `tenant_id` are not a richer version of the same idea; they
+exist because compliance gating, dispatch, and payout each require knowing
+*which* actor did *what*, and cannot function on a uniform-collaborator model.
+CompanyCam's retreat is evidence the surface is unoccupied, not merely
+underbuilt.
 
 ## 5. The headline finding
 
@@ -251,6 +296,14 @@ executing; there is no substrate for it. `service_definitions`,
 `contractor_documents.{status, expires_on}`, `safety_acknowledgements`,
 `payout_periods` / `payout_lines`, and the ten-state lifecycle have no
 counterpart anywhere in their surface.
+
+The §4 permission finding upgrades this from *absence* to *retreat*. Empty
+ground is ambiguous — it can mean a competitor hasn't got there yet. But a
+vendor that shipped per-collaborator permissions and then **removed** them has
+tested the ground and withdrawn from it. Worksie's four membership roles plus
+row-level RLS are not a bet that CompanyCam is slow; they are a bet that
+compliance gating, dispatch, and payout require actor-level distinctions a
+photo-documentation peripheral has already decided it does not want to carry.
 
 ### 6b. Outbound webhooks — copy the contract, and beat it on replay
 
@@ -374,9 +427,11 @@ Independent of competition, these are good calls they made:
 | Absence of payout / dispatch / compliance / time / e-sign | **High** | Spec + live docs, both checked |
 | Peripheral-not-system-of-record thesis | **High** | `ProjectIntegration`, two-valued `Project.status`, non-gating checklists |
 | Mobile resource pressure | **Medium-High** | Inferred from three repos, consistent; no first-party statement |
-| `todo_list.*` and wildcard events | **Unconfirmed** | Reported by PR #39; absent from this pass's extraction |
-| Two-valued `user_role`; 30 MB base64 upload cap | **Unconfirmed** | Reported by PR #39; not re-verified here |
-| Pagination and `modified_since` semantics | **Unconfirmed** | Reported by PR #39; not re-verified here |
+| Collaborator permissions existed and were removed | **High** | [Changelog](https://companycam.readme.io/changelog/removing-permissions-for-project-collaborators.md), read directly 2026-08-01 |
+| Two-valued `user_role`, write-once, absent from read | **High** | [`createuser`](https://companycam.readme.io/reference/createuser.md) + [`updateuser`](https://companycam.readme.io/reference/updateuser.md) + [User object](https://docs.companycam.com/reference/user), all read 2026-08-01 |
+| 30 MB base64 upload cap | **High** | [`createprojectdocument`](https://companycam.readme.io/reference/createprojectdocument.md), quoted verbatim 2026-08-01 |
+| `todo_list.*` and wildcard events | **High** | [Webhooks doc](https://docs.companycam.com/docs/webhooks-1); PR #39's extraction confirmed against live docs |
+| Pagination and `modified_since` semantics | **Spec-derived** | From `openapi.yaml` only; low stakes, not re-verified |
 | Full checklist/task schema properties | **Not obtained** | `components/schemas` truncated on fetch |
 
 ## 10. Sources
@@ -387,6 +442,14 @@ Independent of competition, these are good calls they made:
 [openapi-spec issues](https://github.com/CompanyCam/openapi-spec/issues) ·
 [Core API overview](https://docs.companycam.com/docs/overview-1) ·
 [Webhooks](https://docs.companycam.com/docs/webhooks-1)
+
+**Live-docs verification pass (2026-08-01):**
+[Create User](https://companycam.readme.io/reference/createuser.md) ·
+[Update User](https://companycam.readme.io/reference/updateuser.md) ·
+[User object](https://docs.companycam.com/reference/user) ·
+[Create Project Document](https://companycam.readme.io/reference/createprojectdocument.md) ·
+[Changelog — removing permissions for project collaborators](https://companycam.readme.io/changelog/removing-permissions-for-project-collaborators.md) ·
+[Page index](https://companycam.readme.io/llms.txt)
 
 **Repos (all 18):** `background-agents` · `react-native-image-cache-hoc` ·
 `openapi-spec` · `companycam-vibe-check` · `h3_ruby` · `atlas` · `tiptap-ruby` ·
@@ -409,7 +472,10 @@ competitor: CompanyCam
 focus: engineering surface (public repos + API spec + live docs)
 cadence: quarterly
 watch: openapi.yaml diff, openapi-spec issue tracker, docs.companycam.com
-       webhook event catalogue, atlas/bundle activity, background-agents pace
-unverified-carry-forward: todo_list.* events, user_role cardinality,
-       document upload ceiling, pagination semantics
+       webhook event catalogue, atlas/bundle activity, background-agents pace,
+       changelog (permission-model direction — see §4)
+verified-2026-08-01: todo_list.* events, user_role cardinality + mutability,
+       document upload ceiling, collaborator-permission removal
+unverified-carry-forward: pagination semantics (spec-only, low stakes),
+       checklist/task schema properties (components/schemas truncated)
 ```
