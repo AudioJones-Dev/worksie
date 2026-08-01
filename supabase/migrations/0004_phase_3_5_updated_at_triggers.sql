@@ -5,10 +5,18 @@
 -- migration makes them move.
 --
 -- Why this matters: docs/OFFLINE_FIRST_ARCHITECTURE.md resolves Class B sync
--- conflicts by last-writer-wins per field. That rule needs a server-side change
--- marker to compare against. A DEFAULT now() only fires on INSERT, so without
--- this trigger updated_at would equal created_at forever and the conflict rule
--- would be unimplementable.
+-- conflicts by last-writer-wins at ROW level. That rule needs a server-side
+-- change marker to compare against. A DEFAULT now() only fires on INSERT, so
+-- without this trigger updated_at would equal created_at forever and the
+-- conflict rule would be unimplementable.
+--
+-- Scope of what this provides, stated precisely: updated_at is a single
+-- row-level marker. It decides which row write landed last. It does NOT support
+-- per-field resolution -- two clients editing different fields of the same row
+-- cannot be merged from it, and the later write wins the whole row. Per-field
+-- would need per-field version or timestamp metadata, which this migration does
+-- not add and the schema does not have. An earlier draft of this comment and of
+-- the companion docs claimed per-field; that was wrong.
 --
 -- Setting the value server-side rather than trusting the client is deliberate:
 -- docs/OFFLINE_FIRST_ARCHITECTURE.md § Authority Rules already establishes that
