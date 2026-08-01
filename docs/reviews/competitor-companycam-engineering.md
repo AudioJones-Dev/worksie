@@ -1,297 +1,415 @@
 # Competitor Review — CompanyCam Engineering Surface
 
-**Source:** 18 public repos under `github.com/CompanyCam` + the published
-`openapi.yaml` (Core API v2), scraped 2026-07-31 via Firecrawl.
-**Companion doc:** [`competitor-companycam.md`](./competitor-companycam.md)
-(marketing/feature surface, reviewed 2026-05-22).
+**Companion to:** [`competitor-companycam.md`](./competitor-companycam.md), which
+reviews the *marketed product* surface. This document reviews the *engineering*
+surface: CompanyCam's public repositories and live API, and what they reveal
+about build priorities, technical debt, and unoccupied ground.
+
+**Review date:** 2026-07-31
+**Method:** all 18 public repos in `github.com/CompanyCam` via the GitHub API,
+the published `openapi.yaml`, the `openapi-spec` issue tracker, and
+`docs.companycam.com`.
+
+**Provenance:** reconciled from two independently produced reviews (PR #39 and
+PR #40) that reached the same strategic conclusion by different routes and
+disagreed on two points of fact. Both disagreements are resolved below and
+marked. Every quantitative claim in §1 was re-verified against the GitHub API
+rather than carried over from either source.
+
 **Worksie sources of truth:** `docs/WORKSIE_SPINE.md`, `docs/PRD.md`,
 `docs/DOMAIN_MODEL.md`, `docs/WORK_ORDER_LIFECYCLE.md`,
-`docs/ONBOARDING_FLOWS.md`, `docs/PAYOUT_RULES.md`,
-`docs/roadmap/DOCUMENTS_AND_ESIGN.md`.
+`docs/OFFLINE_FIRST_ARCHITECTURE.md`, `docs/roadmap/DOCUMENTS_AND_ESIGN.md`,
+`packages/db/src/schema/tables.ts`, `packages/domain/src/index.ts`.
 
-## 0. Why this review exists
+## 0. Why repos are a different signal than the marketing site
 
-The existing CompanyCam review reads their **marketing surface** — what
-they say they do. This one reads their **engineering surface** — what
-their code and public API prove they do.
+The features page tells you what CompanyCam *sells*. The repos tell you what
+they *fight*.
 
-The two disagree in useful ways. Marketing pages describe a rich product.
-The API schema describes a thin one. Where a company chooses *not* to
-expose an object is where they have chosen not to own a workflow, and
-that is where the opening is.
+A company open-sources three things: infrastructure it wants maintained for
+free, forks of dependencies it was forced to patch, and tools built to
+diagnose a problem it could not otherwise see. All three are diagnostic, and
+the forks and instrumentation libraries are the honest ones. Marketing pages
+describe a rich product; the API schema describes a thin one. **Where a
+company chooses not to expose an object is where it has chosen not to own a
+workflow, and that is where the opening is.**
 
-## 1. Repo inventory
+## 1. The complete public footprint
 
-18 repos: **8 original**, **10 forks**. Forks are vendored dependencies,
-not contributions — the divergence counts are small and one-directional.
+Verified 2026-07-31 via `GET /orgs/CompanyCam/repos`. This is their entire
+public org: **18 repos, 7 archived, 10 forks.**
 
-### Original work (8)
+| Repo | Lang | Origin | Archived | Last push |
+|---|---|---|---|---|
+| `background-agents` | TypeScript | fork of `ColeMurray/background-agents` | no | 2026-07-20 |
+| `react-native-image-cache-hoc` | JavaScript | fork of `billmalarky/…` | no | 2026-05-28 |
+| `openapi-spec` | YAML | original | no | 2026-05-05 |
+| `h3_ruby` | Ruby | fork of `seanhandley/h3_ruby` | no | 2026-03-04 |
+| `companycam-vibe-check` | Java / TS / Kotlin / Swift | original | no | 2026-03-24 |
+| `atlas` | TypeScript | fork of `expo/atlas` | no | 2026-01-23 |
+| `tiptap-ruby` | Ruby | original | no | 2025-11-21 |
+| `graphql-searchkick` | Ruby | original | no | 2025-08-19 |
+| `hellosign-ruby-sdk` | Ruby | fork of `hellosign/…` (upstream deprecated) | no | 2025-05-20 |
+| `dependaboat` | Ruby | original | no | 2025-02-19 |
+| `ghx` | Ruby | original | no | 2025-02-19 |
+| `attr_encrypted` | Ruby | fork of `attr-encrypted/…` | **yes** | 2023-02-08 |
+| `react-native-doc-viewer` | Java | fork of `philipphecht/…` | **yes** | 2022-12-19 |
+| `react-native-orientation` | Objective-C | fork of `jim-lake/…` | **yes** | 2022-12-08 |
+| `react-native-rate` | — | fork of `KjellConnelly/…` | **yes** | 2022-12-07 |
+| `companycam-dotnet` | C# | original | **yes** | 2022-12-07 |
+| `fancy-count` | Ruby | original | **yes** | 2021-10-13 |
+| `react-native-calendar-datepicker` | JavaScript | fork of `vlad-doru/…` | **yes** | 2020-11-12 |
 
-| Repo | What it is | Last commit | Reads as |
-|---|---|---|---|
-| `openapi-spec` | Core API v2 OpenAPI 3.0 spec, 4.6k lines | May 2026 | **Live.** 21 watchers, 8 forks — partners consume it. |
-| `tiptap-ruby` | Parse/generate/render TipTap docs in Ruby (HTML, JSON, Markdown, plain text) | Nov 2025 | Rich-text documents are a **server-side** concern. This is the engine behind Pages/notepad. |
-| `graphql-searchkick` | Searchkick (Elasticsearch) adapter for GraphQL connections | Aug 2025 | Internal API is **GraphQL**; search is Elasticsearch with geo-proximity. |
-| `companycam-vibe-check` | RN native module: battery, thermal state, memory, connectivity | Jan 2025 | They instrument **device hardware** because field performance bites them. |
-| `dependaboat` | Ferries Dependabot alerts into GitHub Projects | Feb 2025 | Internal security/ops tooling. |
-| `ghx` | OO wrapper over GitHub REST + GraphQL | — | Internal dev tooling. |
-| `companycam-dotnet` | .NET SDK for Core API v2 | Sep 2024 | Partner/enterprise integration surface (Windows-shop estimating software). |
-| `fancy-count` | Redis-backed counter caches for Rails | Mar 2022 | Rails `counter_cache` broke at their write volume. **Scale signal.** |
+**Only six repos are both original and unarchived:** `openapi-spec`,
+`companycam-vibe-check`, `tiptap-ruby`, `graphql-searchkick`, `ghx`,
+`dependaboat`. Three of those six (`ghx`, `dependaboat`, and arguably
+`openapi-spec`) are internal plumbing rather than product.
 
-### Vendored forks (10)
+> **Reconciliation note — fork count.** PR #39 reported 9 forks; the API
+> reports **10**. `atlas` was the one omitted. PR #40's count of 10 was
+> correct.
 
-| Repo | Upstream | Fork state | Reads as |
-|---|---|---|---|
-| `background-agents` | ColeMurray/open-inspect | Jul 2026, +4 / −228 | Building an **internal AI coding-agent platform**. R&D velocity play. |
-| `react-native-image-cache-hoc` | billmalarky | May 2026, active | Image caching still an active problem. |
-| `atlas` | expo/atlas | Jan 2026, +2 | **They are on / moving to Expo.** Bundle-size work underway. |
-| `h3_ruby` | seanhandley | Mar 2026 | Uber H3 hexagonal geo-indexing. Upstream banner: *"LOOKING FOR A NEW MAINTAINER."* |
-| `hellosign-ruby-sdk` | hellosign | May 2025, +1 | **E-signature in production**, on the legacy HelloSign (now Dropbox Sign) SDK. |
-| `attr_encrypted` | attr-encrypted | Feb 2023, +6 | Field-level column encryption. Last touched for Ruby 3 support, 3 years ago. |
-| `react-native-doc-viewer` | philipphecht | Sep 2024, +7 | Native doc/PDF viewing. Upstream dormant since 2022. |
-| `react-native-calendar-datepicker` | vlad-doru | Sep 2024, +18 | Upstream dormant since **2020**. |
-| `react-native-rate` | KjellConnelly | Sep 2024, −3 | App-store review prompts. Upstream 2022. |
-| `react-native-orientation` | jim-lake | Sep 2024 | Orientation locking. |
+> **Reconciliation note — dates.** PR #40 quoted last-commit dates from each
+> repo's default branch; the table above uses `pushed_at`, which reflects a
+> push to *any* branch and is the more defensible figure. They differ
+> materially in one case: `companycam-vibe-check` last committed to its
+> default branch in Jan 2025 but was pushed to in Mar 2026.
 
-Four RN forks all stamped **Sep 19, 2024** — a single bulk-vendoring
-event, then frozen. Those are pinned dependencies, not maintained code.
+Four of the archived RN forks cluster in Dec 2022 and one in Nov 2020 — a
+bulk-vendoring event followed by abandonment, not maintained code.
 
 ## 2. Inferred stack
 
+Nothing here is guesswork beyond what the dependency graphs state outright.
+
 | Layer | Evidence | Conclusion |
 |---|---|---|
-| Backend | 6 Ruby gems | **Ruby on Rails** monolith |
-| Internal API | `graphql-searchkick` | **GraphQL** |
-| Public API | `openapi.yaml` | **REST v2**, `api.companycam.com/v2`, Bearer auth |
-| Search | Searchkick | **Elasticsearch**, with `coordinates: {near, within}` geo queries |
-| Geospatial | `h3_ruby` + `geofence` field | **H3 hexagonal indexing** |
-| Rich text | `tiptap-ruby` | TipTap/ProseMirror, rendered server-side |
-| E-sign | `hellosign-ruby-sdk` | HelloSign / Dropbox Sign |
-| PII | `attr_encrypted` | Column-level encryption |
-| Counters | `fancy-count` | Redis counter caches |
-| Mobile | RN modules + `atlas` | React Native, **migrating toward Expo** |
-| Telemetry | `vibe-check` | Custom hardware instrumentation |
+| Backend | 8 Ruby repos, no Go/Elixir/Java service code | **Ruby on Rails** monolith |
+| Internal API | `graphql-searchkick` adapts Searchkick into `GraphQL::Pagination::Connections` | **GraphQL** |
+| Public API | `openapi.yaml` + live docs | **REST v2** at `api.companycam.com/v2` |
+| Search | Searchkick, ships a Compose file with Elasticsearch | **Elasticsearch**, with `coordinates: {near, within}` geo queries |
+| Geospatial | `h3_ruby` FFI binding + `geofence` on Project | **Uber H3** hexagonal indexing |
+| Rich text | `tiptap-ruby` → HTML, Markdown, plain text | TipTap/ProseMirror, rendered **server-side** |
+| E-sign | `hellosign-ruby-sdk` | HelloSign, upstream now redirects to Dropbox Sign |
+| PII | `attr_encrypted` | Column-level encryption (archived fork) |
+| Counters | `fancy-count` with a Redis adapter | Rails `counter_cache` replaced at scale |
+| Mobile | RN native-module forks + `atlas` | **React Native.** See the note below |
+| Telemetry | `companycam-vibe-check` | First-party hardware instrumentation |
 
-`★ The interesting one:` H3 + Elasticsearch geo + a `geofence` array on
-Project is serious spatial infrastructure. Almost none of it is exposed
-in the public API — `geofence` is a bare coordinate list with no events,
-no radius semantics, no enter/exit hooks. **They built the capability and
-have not productized it.**
+> **Reconciliation note — Expo.** PR #40 read the `expo/atlas` fork as
+> evidence they are "on / moving to Expo." That was an overreach and is
+> **withdrawn.** Atlas is a Metro bundle visualiser and works with bare React
+> Native; forking it evidences a bundle-size effort, not a managed-workflow
+> migration. PR #39's reading is the defensible one: every RN fork they carry
+> patches a *native* module (orientation, doc viewer, app rating, image
+> cache), which is the signature of bare RN, because those are exactly the
+> patches Expo's managed workflow removes the need for.
 
-## 3. The public API surface, as published
+**The interesting one:** H3 + Elasticsearch geo + a `geofence` field on Project
+is serious spatial infrastructure, and almost none of it surfaces in the public
+API — `geofence` is a bare coordinate list with no radius semantics, no
+enter/exit events, no hooks. **They built the capability and did not
+productize it.**
 
-> **Source caveat.** This section is derived from the published `openapi.yaml`.
-> That spec is **not** reliable as a sole source: CompanyCam's own repository
-> carries three open correctness issues against it — #33 "OpenAPI spec is
-> incorrect for certain endpoints" (2026-01-13), #35 (2026-03-03), and #28
-> (open since 2025-06-05).
->
-> **Confirmed understated in at least one place.** The webhooks section of
-> `docs.companycam.com` was read on 2026-07-31 and documents a far richer
-> system than the spec implies: 17 named events, exponential backoff to 10
-> attempts, auto-disable above 25 cumulative errors, and HMAC-SHA1 body
-> signing via `X-CompanyCam-Signature`. The spec exposes none of that —
-> `Webhook.scopes` is a bare `array of string`.
->
-> The rest of `docs.companycam.com` has **not** been read. Treat every absence
-> below as *"absent from the published spec,"* not *"absent from the
-> platform,"* and verify against the live docs before acting on any of it.
-> The §4 conclusion does not depend on completeness: `ProjectIntegration` and
-> the two-valued `Project.status` are both present in the spec as published.
+## 3. The tells — what they built to diagnose their own pain
 
-Twelve resource families appear in the spec:
+Three active repos exist only to measure problems. This is the most useful
+section in the review.
 
-```
-Company     GET /company
-Users       GET|POST /users · GET|PUT|DELETE /users/{id} · GET /users/current
-Projects    GET|POST /projects · GET|PUT|DELETE /projects/{id}
-            POST /projects/{id}/archive · /restore
-            /photos · /videos · /documents · /comments · /labels
-            /assigned_users · /collaborators · /invitations
-            /notepad · /checklists
-Photos      GET /photos · GET|PUT|DELETE /photos/{id}
-            /tags · /comments · /descriptions
-Videos      GET /videos · GET /videos/{id}          (read-only)
-Tags        GET|POST /tags · GET|PUT|DELETE /tags/{id}
-Checklists  GET /checklists · GET /templates/checklists
-Groups      GET|POST /groups · GET|PUT|DELETE /groups/{id}
-Webhooks    GET|POST /webhooks · GET|PUT|DELETE /webhooks/{id}
-```
+### 3a. `companycam-vibe-check` — the mobile app is resource-hungry
 
-Schemas: `Company, User, Project, Photo, Video, Tag, Group, Checklist,
-ChecklistSection, Task, SubTask, ChecklistTemplate, Document, Comment,
-Webhook, ProjectCollaborator, ProjectInvitation, ProjectContact,
-ProjectNotepad, ProjectIntegration, Address, Coordinate, ImageURI, Error`.
+A first-party native library reporting **battery level, charging state,
+low-power mode, network type, cellular generation, metered/expensive
+connection, RAM usage, and thermal state**, normalised across iOS and Android.
+Their README says it exists to find performance bottlenecks and compensate for
+hardware limits.
 
-### What is conspicuously absent
+You do not build thermal-state telemetry unless devices are thermally
+throttling. Read alongside `atlas` (bundle size) and
+`react-native-image-cache-hoc` (still patched in 2026), the picture is
+specific: **continuous camera capture plus large-image upload is burning
+battery, heating phones, and exhausting memory on the mid-range Android
+hardware trades actually carry.** They are instrumenting it, not reporting it
+solved.
 
-No endpoint, and no schema, for any of:
+### 3b. `atlas` — bundle size is a live problem
 
-- **Time entries / labor** — despite time tracking being a marketed feature
-- **Reports** — despite Photo Reports being a marketed feature
-- **Annotations** — despite markup being a marketed feature
-- **Scheduling or dispatch** — no assignment beyond `assigned_users`
-- **Money** — no cost, estimate, invoice, payout, line item
-- **Compliance** — `Document` has no `type`, no `status`, no `expires_at`
-- **Work state** — `Project.status` is `active | deleted`. Plus `archived: bool`.
+Forking Expo's bundle visualiser means someone is on a cold-start or app-size
+reduction effort.
 
-## 4. The headline finding
+### 3c. `dependaboat` + `ghx` — org-scale dependency debt
+
+A purpose-built gem to ferry Dependabot alerts into GitHub Projects, plus a
+GitHub API wrapper its own README calls incomplete and built only to internal
+need. This is the tooling of a large, aging codebase with a security backlog
+to triage — corroborated by their `openapi-spec` issue #19, "Dependabot
+Findings," open since March 2024.
+
+### 3d. `background-agents` — the 2026 bet is velocity, not product AI
+
+Their most recently pushed repo (2026-07-20), a fork of an open-source
+background coding-agent system: Cloudflare Workers + Durable Objects, Modal /
+Daytona / Vercel sandboxes, multi-provider models, GitHub and Slack and Linear
+entry points, cron and webhook triggers.
+
+**CompanyCam is spending its 2026 innovation budget on shipping faster, not on
+new product surface.** Notably, *zero* AI appears in any product-facing repo.
+Their AI is inward-facing.
+
+## 4. The real API surface
+
+> **Source discipline.** The published `openapi.yaml` is **incomplete and
+> known-wrong by their own admission**: three open correctness issues stand
+> against it — #33 "OpenAPI spec is incorrect for certain endpoints"
+> (2026-01-13), #35 (2026-03-03), #28 (open since 2025-06-05). Most
+> significantly it exposes `/webhooks` CRUD but types `Webhook.scopes` as a
+> bare `array of string`, hiding the entire event catalogue. Findings below
+> are reconciled against `docs.companycam.com`.
+
+**Endpoints (v2):** `/company`, `/users` (+ `/users/current`), `/projects`
+(+ `/archive`, `/restore`, `/notepad`, `/assigned_users`, `/collaborators`,
+`/invitations`, `/labels`, `/documents`, `/comments`, `/checklists`,
+`/photos`, `/videos`), `/photos` (+ `/tags`, `/comments`, `/descriptions`),
+`/videos`, `/tags`, `/checklists` (+ `/templates/checklists`), `/groups`,
+`/webhooks`.
+
+**Webhook events** — read from `docs.companycam.com/docs/webhooks-1`:
+`project.{created, updated, archived, deleted, merged, label_*, contact_*}`,
+`photo.{created, updated, tag_*, description_*}`, `comment.created`,
+`document.{created, updated}`, `video.{created, updated}`, `task.completed`.
+
+> PR #39 additionally reported `todo_list.{created, completed, deleted}` and
+> `resource.*` / `*` wildcards. Those did **not** appear in this review's
+> extraction of the same page and are recorded as **unconfirmed**. The
+> `todo_list` naming, if present, would be a further tell that checklists were
+> retrofitted onto a photo model rather than designed as a work primitive.
+
+**Delivery semantics** — verified: any non-200 response retries with
+exponential backoff to a maximum of **10 attempts**; a webhook whose
+cumulative error count exceeds **25** is disabled, resetting on success;
+bodies are signed with a base64-encoded **HMAC-SHA1** of the raw request body
+in an `X-CompanyCam-Signature` header keyed on the subscription token.
+
+**Pagination** — PR #39 reports offset (`page`/`per_page`) and cursor
+(`after`/`before` with `X-Next-Cursor`, `X-Prev-Cursor`, `X-Has-Next`,
+`X-Has-Prev`), not mixable, plus `modified_since` for incremental sync. Not
+independently re-verified here.
+
+### What is absent
+
+No endpoint, schema, or webhook event exists for any of:
+
+**time tracking · timesheets · payroll · invoices · estimates · payments ·
+scheduling · dispatch · work orders · compliance documents · insurance ·
+licensing · e-signature · annotations · reports**
+
+Time tracking, Photo Reports, and markup are all *marketed* features with no
+API surface at all — they are web-app-only and not automatable.
+
+### Two structural weaknesses worth naming
+
+Reported by PR #39; **not independently re-verified in this pass.**
+
+- **The permission model is two-valued.** `user_role` is `standard` or
+  `restricted`. No role for a subcontractor, back-office user, or customer.
+  Anything sharper is bolted on via project-level `assigned_users`,
+  `collaborators`, and `invitations`.
+- **Document upload is base64 with a 30 MB ceiling** — no resumable or
+  multipart path. On flaky rural LTE, a 25 MB upload failing at 90% starts
+  over.
+
+## 5. The headline finding
 
 **CompanyCam has architected itself as a peripheral, not a system of record.**
 
-Three pieces of evidence, all from their own schema:
+Three pieces of evidence, all from their own published schema and therefore
+unaffected by the spec's incompleteness:
 
-1. `ProjectIntegration { type: "JobNimbus", relation_id: "123" }` — a
-   Project carries a foreign key **into someone else's job object**. The
-   canonical job lives in JobNimbus/AccuLynx. CompanyCam hangs off it.
-2. `Project.status` has exactly two values. There is no lifecycle, no
-   transition validation, no audit trail. A project is a folder.
-3. Checklists have `completed_at` but **gate nothing**. A task can be
-   marked done without evidence; nothing blocks on it. Their own
-   `requires photo` marketing feature has no enforcement object in the API.
+1. `ProjectIntegration { type: "JobNimbus", relation_id: "123" }` — a Project
+   carries a foreign key **into someone else's job object**. The canonical job
+   lives in JobNimbus or AccuLynx. CompanyCam hangs off it.
+2. `Project.status` has exactly two values, `active | deleted`, plus an
+   `archived` boolean. No lifecycle, no transition validation, no audit trail.
+   A project is a folder.
+3. Checklists have `completed_at` but **gate nothing**. Their marketed
+   "photo required" feature has no enforcement object in the API. Their
+   checklists fire `task.completed` as a *notification*; Worksie's checklist
+   steps **gate** `in_progress → awaiting_signoff` server-side. Same word,
+   different category of object.
 
-This is a deliberate, coherent strategy — be the best evidence layer and
-plug into every job system. It is also a permanent ceiling. They cannot
-own dispatch, compliance, or payout without breaking their integration
-partners, who *are* the job system.
+This is a coherent strategy — be the best evidence layer, integrate with every
+job system — and a permanent ceiling. They cannot own dispatch, compliance, or
+payout without breaking the partners who *are* the job system.
 
-**Worksie is designed for exactly the layer CompanyCam has ceded.**
+## 6. What this means for Worksie
 
-## 5. Gaps Worksie can fill — ranked
+### 6a. Confirmed — the differentiators sit on empty ground
 
-### 5a. Own the workflow spine they cannot (strategic, already in flight)
+There is no platform primitive for compliance-gated dispatch, payout, or
+server-validated work-order state. This is not a roadmap they are quietly
+executing; there is no substrate for it. `service_definitions`,
+`contractor_documents.{status, expires_on}`, `safety_acknowledgements`,
+`payout_periods` / `payout_lines`, and the ten-state lifecycle have no
+counterpart anywhere in their surface.
 
-| Gap in CompanyCam | Worksie has | Status |
-|---|---|---|
-| No work-order state machine | 10 states, server-validated, append-only `work_order_events` | ✅ shipped in schema |
-| No gating on evidence | Required-photo/signature steps gate `in_progress → awaiting_signoff` | ✅ Hard Rule #4 |
-| `Document` has no type/status/expiry | `document_types.gating`, `contractor_documents.{status, expires_on}` | ✅ shipped |
-| No safety model | Versioned `safety_packs` + re-ack on bump | ✅ shipped |
-| No money at all | `payout_periods`, `payout_lines`, 3 payout modes, 1099 reproduction | ✅ shipped |
-| Two-state project | Frozen `service_snapshot_json` per work order | ✅ Hard Rule #2 |
+### 6b. Outbound webhooks — copy the contract, and beat it on replay
 
-**Nothing to build here.** This is already the differentiator; the API
-evidence just confirms it is a structural gap in their product, not a
-backlog item they will close next quarter.
+**Do not plan against "they haven't built this."** They have, and it is
+battle-tested: signed payloads, backoff to 10 attempts, auto-disable at 25
+errors, cursor pagination with `modified_since`.
 
-### 5b. Real opportunities — build these
+Two improvements available while copying it:
 
-Ordered by (field value ÷ effort), with the CompanyCam-derived rationale:
+1. **HMAC-SHA256, not SHA-1.** Theirs is a legacy choice.
+2. **Replayable delivery.** `work_order_events` is already append-only by
+   trigger, so Worksie can redeliver from a cursor after an outage. Theirs is
+   fire-and-forget — a disabled webhook loses the window permanently. This is
+   a genuine platform advantage falling out of a schema decision already made,
+   at close to zero additional cost.
 
-1. **Geofence-driven auto check-in / dispatch radius.**
-   They have H3 + Elasticsearch geo + a `geofence` field, and expose
-   *none* of it as behavior. Worksie already stamps `gps` + `captured_at`
-   on every `proof_of_work_artifact`. Adding "artifact captured outside
-   the work-order geofence → flag" is a small server-side rule that
-   turns proof-of-work into **verified** proof-of-work. This is the
-   single highest-leverage steal on the list, and it is a capability
-   they have built but not shipped.
+And the framing that survives their maturity: every one of their events is CRUD
+on a photo, project, document, or comment. **Theirs is a media feed; Worksie's
+is a work-state feed.**
 
-2. **Webhooks on `work_order_events`.**
-   Their `Webhook` object has `url`, `scopes[]`, `token` (HMAC body
-   hash), `enabled`. That is the whole design, and it is enough. Worksie's
-   `work_order_events` table is already append-only — it is a webhook
-   feed that has not been plugged in. This is also the answer to the
-   "50+ integrations" gap from the marketing review: one event stream
-   beats fifty connectors.
+See `docs/roadmap/OUTBOUND_EVENTS.md`.
 
-3. **Annotations.**
-   Confirmed absent from their API despite being marketed. Landing
-   `proof_of_work_annotations` gives Worksie a capability that their
-   *partners cannot access programmatically*. Already ranked #1 in the
-   marketing review — this raises confidence.
+### 6c. Upload resilience moves from implementation detail to demo
 
-4. **Tags.**
-   `Tag` is a first-class company-scoped resource for them, applied to
-   photos, and it is one of only two objects with full CRUD. That is
-   evidence tags carry real back-office weight at volume. Confirms the
-   marketing review's #2. Recommend polymorphic + `tenant_id`-scoped.
+`OFFLINE_FIRST_ARCHITECTURE.md` already specifies a resumable upload queue.
+Against a competitor capped at 30 MB base64 with no resume, that becomes a
+demo: kill the network mid-upload, walk out of range, come back, watch it
+finish.
 
-5. **Audio proof-of-work kind.**
-   Still absent from their API too (no audio object anywhere), so this
-   is parity-neutral — but it is cheap and field crews want it. Add
-   `audio` to `PROOF_OF_WORK_KINDS`.
+### 6d. Device cost is a competitive axis
 
-6. **PDF reports.**
-   No report endpoint in their API — their Photo Reports are
-   web-app-only and not automatable. A Worksie report that is
-   **API-addressable** is a differentiator, not just parity.
+`companycam-vibe-check` is CompanyCam admitting in public that the field device
+pays a heavy price. A phone that dies at 2pm is a real complaint from real
+crews and a real reason to switch.
 
-### 5c. Things to deliberately not chase
+Worksie's mobile app is still a scaffold, so the cheap wins are still
+available: capture-time compression before queueing, deferring uploads to
+unmetered networks (their own library reads `isConnectionExpensive`, so the
+signal is standard), batching writes. Worth writing into
+`OFFLINE_FIRST_ARCHITECTURE.md` as an explicit budget when the mobile slice
+lands, rather than discovering it later and having to build telemetry to chase
+it.
 
-`ProjectInvitation` / `ProjectCollaborator` / `public: bool` / `slug` /
-`embedded_project_url` show external collaboration is more first-class in
-their data model than the marketing suggests. It is still correctly out of
-Worksie's v1 scope per `PRD.md` §Out of Scope — but note that if a
-customer-portal decision ever gets revisited, this is a mature surface to
-copy from, not invent.
+### 6e. Tags move up
 
-## 6. Their maintenance debt
+CompanyCam ships **two** taxonomy systems — `tags` on photos and `labels` on
+projects — each with dedicated endpoints and webhook events. Two systems means
+it earned its own model twice. The back-office query ("every job that had a
+load-bearing exposure photo") is the same shape for Worksie, and a polymorphic
+`tags` table scoped by `tenant_id` remains the right answer.
 
-Fair-game competitive talking points, stated as facts:
+See `docs/roadmap/TAGS_AND_REPORTS.md`.
 
-| Item | Fact | Implication |
-|---|---|---|
-| 4 RN native modules | All frozen Sep 19 2024; upstreams dormant since 2020–2022 | Real mobile tech debt. Worksie on Expo + current libs carries none of it. |
-| `h3_ruby` | Upstream README: *"LOOKING FOR A NEW MAINTAINER"* | They now carry maintenance burden on their geo layer. |
-| `attr_encrypted` | Fork last touched Feb 2023 (Ruby 3 support); upstream carries its own deprecation notices for legacy IV/salt modes | A 3-year-stale crypto dependency. *Whether legacy modes are in use is unknown — do not assert a vulnerability.* |
-| `hellosign-ruby-sdk` | HelloSign is now Dropbox Sign; this SDK targets the legacy v3 API | Their e-sign path is on a rebranded/legacy SDK. Relevant to `docs/roadmap/DOCUMENTS_AND_ESIGN.md` — pick a current provider. |
-| `fancy-count` | Rails `counter_cache` replaced with Redis in 2022 | They hit write-contention at scale early. Worksie will too — worth knowing the shape of the fix before it bites. |
+### 6f. E-sign moves up, and the vendor choice is now obvious
+
+`customer_signoffs` is a signature capture, not a legally executed document.
+CompanyCam's only e-sign path is a fork of a **deprecated** HelloSign SDK whose
+upstream redirects to `dropbox-sign` — an unmaintained integration, not a
+product capability. Real e-sign on subcontractor agreements and change orders
+is open ground, and their abandoned fork tells you which vendor path not to
+repeat.
+
+See `docs/roadmap/DOCUMENTS_AND_ESIGN.md`.
+
+### 6g. Annotations and reports remain open
+
+Both are marketed by CompanyCam and absent from their API, so their own
+integration partners cannot reach them programmatically. An API-addressable
+report is a differentiator, not parity.
+
+### 6h. Watch, do not copy — H3
+
+Their H3 binding is orphaned upstream ("LOOKING FOR A NEW MAINTAINER"). Hex
+indexing solves territory density and clustering at scale. Worksie's dispatch
+problem is nearer-term and smaller — *which qualified, compliant contractor is
+closest to this work order* — which PostGIS answers directly on Supabase. Note
+H3 as a Phase-N+ concern if territory analytics ever matter; do not take on an
+orphaned native binding now.
 
 ## 7. Patterns worth adopting
 
 Independent of competition, these are good calls they made:
 
-- **Publish an OpenAPI spec as a repo.** 21 watchers, 8 forks, versioned
-  in git, topic-tagged `auditing-exempt`. Partners diff it. Worksie should
-  do the same the moment there is an external API.
-- **`vibe-check`-style hardware telemetry.** Battery / thermal / memory /
-  connectivity at capture time. For an offline-first app with a resumable
-  upload queue, this is *directly* useful: knowing a device was thermally
-  throttled on cellular explains a stalled queue. Cheap to add to
-  Expo, high diagnostic value.
-- **MD5 `hash` on every photo.** Dedup + integrity. Worksie's upload queue
-  is resumable; a content hash makes retry idempotent for free.
-- **`processing_status` on media.** They model async processing as
-  first-class state. Worksie's artifacts should too.
-- **Server-side rich text (`tiptap-ruby`).** If Worksie ever renders notes
-  to PDF, having one canonical document model that renders to HTML *and*
-  Markdown *and* plain text (for search) is the right shape.
+- **Publish an OpenAPI spec as a repo.** 21 watchers, 8 forks, versioned in
+  git. Partners diff it. Worth doing the moment there is an external API —
+  *and worth keeping accurate*, which is the lesson their three open issues
+  teach.
+- **`vibe-check`-style hardware telemetry.** For an offline-first app with a
+  resumable queue, knowing a device was thermally throttled on cellular
+  explains a stalled queue. Cheap on Expo, high diagnostic value.
+- **A content hash on every media row.** Theirs is MD5; Phase 3.5 landed
+  SHA-256 on `proof_of_work_artifacts` for dedup and idempotent retry.
+- **`processing_status` as first-class async state.** Also landed in Phase 3.5.
+- **Server-side rich text.** One canonical document model rendering to HTML,
+  Markdown, and plain text beats three renderers if reports ever ship.
 
-## 8. Recommendation
+## 8. What not to do
 
-1. **No spine/PRD changes.** This review reinforces the existing
-   positioning rather than challenging it. The API evidence is the
-   strongest confirmation yet that "feature parity is not the goal" is
-   the correct call — their ceiling is structural.
-2. **Promote geofence verification** into the roadmap. It was not in the
-   marketing review's gap list and it is the highest-leverage item found
-   here.
-3. **Promote `work_order_events` webhooks** above the generic
-   "integrations" line item from the marketing review — it is the same
-   need with a concrete, proven design to copy.
-4. **Re-confirm the e-sign provider choice** in
-   `docs/roadmap/DOCUMENTS_AND_ESIGN.md` against the finding that
-   CompanyCam is on a legacy HelloSign SDK.
-5. **Add media `hash` + `processing_status`** to `proof_of_work_artifacts`
-   when the upload queue lands. Small now, painful to retrofit.
-6. **Do not** treat their RN/crypto debt as a moat. It is a talking point
-   for competitive deals, not a product strategy.
+- **Do not read the archived RN forks as a stack recommendation.** They are
+  2020–2022 artifacts of unmanaged React Native. Worksie is on Expo, which is
+  why most of those forks would never have been needed.
+- **Do not chase `background-agents`.** It is internal developer
+  infrastructure. Forking it would be adopting a competitor's engineering
+  process as product scope.
+- **Do not treat the published `openapi.yaml` as authoritative** in any future
+  comparison. It is stale by their own admission.
+- **Do not treat their maintenance debt as a moat.** Stale forks are a talking
+  point in a competitive deal, not a product strategy.
+- **Do not let any of this pull work forward of Phase 3.** Everything in §6 is
+  roadmap input. The auth, RLS, and tenancy boundary lands first.
 
-## 9. Sources
+## 9. Confidence
 
-All scraped 2026-07-31 via Firecrawl CLI v1.19.21.
+| Finding | Confidence | Basis |
+|---|---|---|
+| Repo list, archive/fork state, languages, push dates | **High** | `GET /orgs/CompanyCam/repos`, re-verified 2026-07-31 |
+| Rails / GraphQL / Elasticsearch / TipTap / H3 stack | **High** | Stated dependencies |
+| Bare React Native, not Expo-managed | **High** | Every fork patches a native module |
+| Webhook events, retry, auto-disable, signing | **High** | `docs.companycam.com/docs/webhooks-1`, read directly |
+| Endpoint inventory | **High** | Spec + live docs, both checked |
+| Absence of payout / dispatch / compliance / time / e-sign | **High** | Spec + live docs, both checked |
+| Peripheral-not-system-of-record thesis | **High** | `ProjectIntegration`, two-valued `Project.status`, non-gating checklists |
+| Mobile resource pressure | **Medium-High** | Inferred from three repos, consistent; no first-party statement |
+| `todo_list.*` and wildcard events | **Unconfirmed** | Reported by PR #39; absent from this pass's extraction |
+| Two-valued `user_role`; 30 MB base64 upload cap | **Unconfirmed** | Reported by PR #39; not re-verified here |
+| Pagination and `modified_since` semantics | **Unconfirmed** | Reported by PR #39; not re-verified here |
+| Full checklist/task schema properties | **Not obtained** | `components/schemas` truncated on fetch |
 
-- `https://github.com/CompanyCam/{openapi-spec, tiptap-ruby, graphql-searchkick, companycam-vibe-check, dependaboat, ghx, companycam-dotnet, fancy-count}`
-- `https://github.com/CompanyCam/{background-agents, react-native-image-cache-hoc, atlas, h3_ruby, hellosign-ruby-sdk, attr_encrypted, react-native-doc-viewer, react-native-calendar-datepicker, react-native-rate, react-native-orientation}`
-- `https://raw.githubusercontent.com/CompanyCam/openapi-spec/main/openapi.yaml` (Core API v2, 4,608 lines)
+## 10. Sources
 
-## 10. Rerun inputs
+**Org + API:**
+[CompanyCam org repositories](https://github.com/orgs/CompanyCam/repositories?type=all&sort=updated) ·
+[`openapi.yaml`](https://raw.githubusercontent.com/CompanyCam/openapi-spec/main/openapi.yaml) ·
+[openapi-spec issues](https://github.com/CompanyCam/openapi-spec/issues) ·
+[Core API overview](https://docs.companycam.com/docs/overview-1) ·
+[Webhooks](https://docs.companycam.com/docs/webhooks-1)
+
+**Repos (all 18):** `background-agents` · `react-native-image-cache-hoc` ·
+`openapi-spec` · `companycam-vibe-check` · `h3_ruby` · `atlas` · `tiptap-ruby` ·
+`graphql-searchkick` · `hellosign-ruby-sdk` · `dependaboat` · `ghx` ·
+`attr_encrypted` · `react-native-doc-viewer` · `react-native-orientation` ·
+`react-native-rate` · `companycam-dotnet` · `fancy-count` ·
+`react-native-calendar-datepicker` — all under `https://github.com/CompanyCam/`
+
+**Worksie:** `docs/WORKSIE_SPINE.md`, `docs/PRD.md`, `docs/DOMAIN_MODEL.md`,
+`docs/WORK_ORDER_LIFECYCLE.md`, `docs/OFFLINE_FIRST_ARCHITECTURE.md`,
+`docs/roadmap/DOCUMENTS_AND_ESIGN.md`, `docs/roadmap/OUTBOUND_EVENTS.md`,
+`docs/roadmap/TAGS_AND_REPORTS.md`, `docs/roadmap/CAPTURE_INTEGRITY.md`,
+`packages/db/src/schema/tables.ts`, `packages/domain/src/index.ts`.
+
+## 11. Rerun inputs
 
 ```
 workflow: firecrawl-competitive-intel
 competitor: CompanyCam
-focus: engineering surface (public repos + API spec)
+focus: engineering surface (public repos + API spec + live docs)
 cadence: quarterly
-watch: openapi.yaml diff, atlas/Expo migration pace, background-agents activity
+watch: openapi.yaml diff, openapi-spec issue tracker, docs.companycam.com
+       webhook event catalogue, atlas/bundle activity, background-agents pace
+unverified-carry-forward: todo_list.* events, user_role cardinality,
+       document upload ceiling, pagination semantics
 ```
