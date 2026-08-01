@@ -49,7 +49,7 @@ codebase behind them.
 | `fancy-count` | Ruby | original | **archived** | Oct 2021 |
 | `react-native-calendar-datepicker` | JavaScript | fork of `vlad-doru/…` | **archived** | Nov 2020 |
 
-**7 of 18 are archived. 9 of 18 are forks.** Only six are original and
+**7 of 18 are archived. 10 of 18 are forks.** Only six are original and
 maintained: `openapi-spec`, `companycam-vibe-check`, `tiptap-ruby`,
 `graphql-searchkick`, `ghx`, `dependaboat` — and three of those six are
 internal GitHub-workflow plumbing, not product.
@@ -295,6 +295,28 @@ do not take on an orphaned native binding now.
 | Mobile resource pressure | Medium-High | Inferred from three repos, consistent; not confirmed by first-party statement |
 | Per-repo last-commit dates | Medium | Org "Updated" timestamps, not commit SHAs |
 | Full checklist/task schema properties | Low — not obtained | `components/schemas` truncated on fetch |
+
+### 7a. Provenance for the four contested claims
+
+A parallel review ([PR #40](https://github.com/AudioJones-Dev/worksie/pull/40))
+could not reproduce four claims below and carried them as *Unconfirmed*. Each
+came from a specific primary source in this review's extraction pass; recorded
+here so they can be promoted or refuted without re-deriving them.
+
+| Claim | Source | Verbatim basis |
+|---|---|---|
+| `todo_list.*` / `task.*` / `*` wildcard events | [Webhooks](https://docs.companycam.com/docs/webhooks-1) | Subscribable list includes `todo_list.{created,completed,deleted}`, `task.completed`, per-resource `resource.*`, and a bare `*` |
+| `user_role` is two-valued | `openapi.yaml`, User schema | "User role assignment: `standard` or `restricted`" |
+| Document upload 30 MB, base64 | `openapi.yaml`, Document schema | `attachment` documented as base64 with a 30 MB limit |
+| Dual pagination, not mixable | `openapi.yaml`, list params | Offset (`page`/`per_page`) and cursor (`after`/`before`) with `X-Next-Cursor`, `X-Prev-Cursor`, `X-Has-Next`, `X-Has-Prev`; photo listing supports both but they cannot be combined |
+
+Caveat that applies to three of the four: they were read from `openapi.yaml`,
+which §4 establishes is stale and known-wrong. They are accurate reports *of
+the spec*; whether the live API still matches is a separate question, and the
+`user_role` and upload-ceiling claims in particular are worth re-checking
+against `docs.companycam.com` before either is used in positioning. The
+webhook-event claim is the strongest of the four — it came from the live docs,
+not the spec.
 
 ## 8. Sources
 
