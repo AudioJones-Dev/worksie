@@ -84,7 +84,7 @@ someone else's job object*, because the canonical job lives in the other
 system. Worksie owns the work order. Emitting events from a system of record
 is a different and stronger position than emitting them from a satellite.
 
-See `docs/reviews/competitor-companycam-engineering.md` §4 and §5b.
+See `docs/reviews/competitor-companycam-engineering.md` §4 (verified event catalogue and delivery semantics), §5 (the peripheral thesis), and §6b.
 
 ## Proposed entities
 

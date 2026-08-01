@@ -38,7 +38,7 @@ object. Their public API exposes **none of it as behavior** — no enter/exit
 events, no radius semantics, no capture verification. They built the capability
 and did not productize it.
 
-See `docs/reviews/competitor-companycam-engineering.md` §5b.
+See `docs/reviews/competitor-companycam-engineering.md` §2 (their unproductized H3 + geofence infrastructure) and §6g.
 
 ## 1. Capture-location verification
 
