@@ -296,20 +296,40 @@ underbuilt.
 
 **CompanyCam has architected itself as a peripheral, not a system of record.**
 
-Three pieces of evidence, all from their own published schema and therefore
-unaffected by the spec's incompleteness:
+Four pieces of evidence. Points 1, 2 and 4 were **verified against the live
+docs on 2026-08-01**, so the thesis does not rest on the stale `openapi.yaml`:
 
-1. `ProjectIntegration { type: "JobNimbus", relation_id: "123" }` — a Project
-   carries a foreign key **into someone else's job object**. The canonical job
-   lives in JobNimbus or AccuLynx. CompanyCam hangs off it.
-2. `Project.status` has exactly two values, `active | deleted`, plus an
-   `archived` boolean. No lifecycle, no transition validation, no audit trail.
-   A project is a folder.
+1. **`ProjectIntegration { type, relation_id }`** — both required, documented
+   with the example values `"JobNimbus"` and `"123"`. A Project carries a
+   foreign key **into someone else's job object**. The canonical job lives in
+   JobNimbus or AccuLynx; CompanyCam hangs off it. The direction of that
+   pointer is the whole thesis: they reference the system of record, they are
+   not it.
+2. **`Project.status` is `active | deleted`** — and note *what kind* of field
+   that is. It is a soft-delete flag, not a workflow state. Archival is a
+   separate endpoint pair (`/archive`, `/restore`), not a status value. There
+   is **no job-progress state on a Project at all** — no scheduled, no in
+   progress, no complete. No lifecycle, no transition validation, no audit
+   trail. A project is a folder with a soft-delete bit.
 3. Checklists have `completed_at` but **gate nothing**. Their marketed
    "photo required" feature has no enforcement object in the API. Their
    checklists fire `task.completed` as a *notification*; Worksie's checklist
    steps **gate** `in_progress → awaiting_signoff` server-side. Same word,
    different category of object.
+4. **`Document` is a file blob with no lifecycle.** The full property set is
+   `id`, `creator_id`, `creator_type`, `creator_name`, `project_id`, `name`,
+   `url`, `content_type`, `byte_size`, `created_at`, `updated_at`. There is
+   **no type or category, no status, no approval state, no expiry, and no
+   signature field.**
+
+Point 4 is the one that matters most for Worksie, and it deserves stating
+plainly: **the compliance gate is not a feature CompanyCam lacks — it is a
+shape their schema cannot express.** Worksie's gate needs
+`document_types.gating`, `contractor_documents.status`, and
+`contractor_documents.expires_on` to say "this COI expired, so dispatch is
+blocked." Against a Document object with no type, no status and no expiry,
+there is nowhere to put any of the three. Adding them is not a feature ticket
+for them; it is a re-founding of the object.
 
 This is a coherent strategy — be the best evidence layer, integrate with every
 job system — and a permanent ceiling. They cannot own dispatch, compliance, or
@@ -325,6 +345,12 @@ executing; there is no substrate for it. `service_definitions`,
 `contractor_documents.{status, expires_on}`, `safety_acknowledgements`,
 `payout_periods` / `payout_lines`, and the ten-state lifecycle have no
 counterpart anywhere in their surface.
+
+§5 point 4 makes the sharpest version of this concrete. The compliance gate
+reduces to three fields — a document's *type*, its *status*, and its
+*expiry* — and CompanyCam's `Document` object carries none of them. That is
+the difference between a competitor who could ship this next quarter and one
+who would have to re-found an object that every existing integration reads.
 
 The §4 permission finding upgrades this from *absence* to *retreat*. Empty
 ground is ambiguous — it can mean a competitor hasn't got there yet. But a
@@ -454,7 +480,8 @@ Independent of competition, these are good calls they made:
 | Webhook events, retry, auto-disable, signing | **High** | `docs.companycam.com/docs/webhooks-1`, read directly |
 | Endpoint inventory | **High** | Spec + live docs, both checked |
 | Absence of payout / dispatch / compliance / time / e-sign | **High** | Spec + live docs, both checked |
-| Peripheral-not-system-of-record thesis | **High** | `ProjectIntegration`, two-valued `Project.status`, non-gating checklists |
+| Peripheral-not-system-of-record thesis | **High** | [`ProjectIntegration{type,relation_id}`](https://companycam.readme.io/reference/getproject.md), [`Project.status = active\|deleted`](https://companycam.readme.io/reference/project.md), [`Document` with no type/status/expiry](https://companycam.readme.io/reference/listprojectdocuments.md) — all read from live docs 2026-08-01 |
+| `Document` has no type, status, approval, expiry or signature | **High** | [listprojectdocuments](https://companycam.readme.io/reference/listprojectdocuments.md), full property set enumerated 2026-08-01 |
 | Mobile resource pressure | **Medium-High** | Inferred from three repos, consistent; no first-party statement |
 | Collaborator permissions existed and were removed | **High** | [Changelog](https://companycam.readme.io/changelog/removing-permissions-for-project-collaborators.md), read directly 2026-08-01 |
 | Two-valued `user_role`, write-once, absent from read | **High** | [`createuser`](https://companycam.readme.io/reference/createuser.md) + [`updateuser`](https://companycam.readme.io/reference/updateuser.md) + [User object](https://docs.companycam.com/reference/user), all read 2026-08-01 |
@@ -477,6 +504,9 @@ Independent of competition, these are good calls they made:
 [Update User](https://companycam.readme.io/reference/updateuser.md) ·
 [User object](https://docs.companycam.com/reference/user) ·
 [Create Project Document](https://companycam.readme.io/reference/createprojectdocument.md) ·
+[List Project Documents (Document schema)](https://companycam.readme.io/reference/listprojectdocuments.md) ·
+[Project object](https://companycam.readme.io/reference/project.md) ·
+[Get Project (ProjectIntegration schema)](https://companycam.readme.io/reference/getproject.md) ·
 [Changelog — removing permissions for project collaborators](https://companycam.readme.io/changelog/removing-permissions-for-project-collaborators.md) ·
 [Page index](https://companycam.readme.io/llms.txt)
 
@@ -504,7 +534,9 @@ watch: openapi.yaml diff, openapi-spec issue tracker, docs.companycam.com
        webhook event catalogue, atlas/bundle activity, background-agents pace,
        changelog (permission-model direction — see §4)
 verified-2026-08-01: todo_list.* events, user_role cardinality + mutability,
-       document upload ceiling, collaborator-permission removal
+       document upload ceiling, collaborator-permission removal,
+       ProjectIntegration{type,relation_id}, Project.status = active|deleted,
+       Document has no type/status/approval/expiry/signature
 unverified-carry-forward: pagination semantics (spec-only, low stakes),
        checklist/task schema properties (components/schemas truncated)
 ```
