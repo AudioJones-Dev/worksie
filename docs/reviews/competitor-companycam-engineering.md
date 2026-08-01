@@ -80,15 +80,24 @@ have not productized it.**
 
 ## 3. The public API surface, as published
 
-> **Source caveat.** Everything in this section is derived from the published
-> `openapi.yaml` alone. That spec is **not** reliable as a sole source:
-> CompanyCam's own repository carries three open correctness issues against it
-> — #33 "OpenAPI spec is incorrect for certain endpoints" (2026-01-13), #35
-> (2026-03-03), and #28 (2025-06-05). Their live documentation at
-> `docs.companycam.com` was not read for this review. Read the absences in §3
-> and the conclusions in §4 as *"absent from the published spec,"* not
-> *"absent from the platform."* Verifying against the live docs is the first
-> thing to do before acting on any of it.
+> **Source caveat.** This section is derived from the published `openapi.yaml`.
+> That spec is **not** reliable as a sole source: CompanyCam's own repository
+> carries three open correctness issues against it — #33 "OpenAPI spec is
+> incorrect for certain endpoints" (2026-01-13), #35 (2026-03-03), and #28
+> (open since 2025-06-05).
+>
+> **Confirmed understated in at least one place.** The webhooks section of
+> `docs.companycam.com` was read on 2026-07-31 and documents a far richer
+> system than the spec implies: 17 named events, exponential backoff to 10
+> attempts, auto-disable above 25 cumulative errors, and HMAC-SHA1 body
+> signing via `X-CompanyCam-Signature`. The spec exposes none of that —
+> `Webhook.scopes` is a bare `array of string`.
+>
+> The rest of `docs.companycam.com` has **not** been read. Treat every absence
+> below as *"absent from the published spec,"* not *"absent from the
+> platform,"* and verify against the live docs before acting on any of it.
+> The §4 conclusion does not depend on completeness: `ProjectIntegration` and
+> the two-valued `Project.status` are both present in the spec as published.
 
 Twelve resource families appear in the spec:
 

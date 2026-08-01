@@ -39,30 +39,50 @@ built and enforced. What is missing is delivery.
 
 ## Competitive note
 
-CompanyCam's published `openapi.yaml` shows a `Webhook` object with four
-fields — `url`, `scopes[]`, `token`, `enabled` — and `/webhooks` CRUD.
+**CompanyCam already has a mature outbound webhook system.** Do not plan
+against the assumption that this is unclaimed ground.
 
-**Do not treat that as their full design.** The spec is demonstrably
-incomplete: their own repository carries three open correctness issues,
-including #33 "OpenAPI spec is incorrect for certain endpoints" (open since
-2026-01-13) and #28 (open since 2025-06-05). `Webhook.scopes` is typed as a
-bare `array of string` with no enumerated event list, so the actual event
-catalogue is not visible in the spec at all. Their live documentation at
-`docs.companycam.com` is the authoritative source and has not been read as
-part of this spec-derived review.
+Their published `openapi.yaml` shows only a four-field `Webhook` object and
+`/webhooks` CRUD, which badly understates it — `Webhook.scopes` is typed as a
+bare `array of string` with no enumerated events. The spec is also demonstrably
+unreliable: their repository carries three open correctness issues against it
+(#33, 2026-01-13; #35, 2026-03-03; #28, open since 2025-06-05).
 
-What the four fields do establish is the *shape* worth copying — a URL, a
-scope selector, a shared secret for body signing, and an enable flag. Treat
-the delivery semantics below as Worksie's design decisions, not as
-observations of theirs.
+Read from their live documentation at `docs.companycam.com/docs/webhooks-1`
+on 2026-07-31:
+
+- **17 events**: `project.{created, updated, archived, deleted, merged,
+  label_*, contact_*}`, `photo.{created, updated, description_*, tag_*}`,
+  `comment.created`, `document.{created, updated}`, `video.{created, updated}`,
+  `task.completed`
+- **Retries**: any non-200 response retries with exponential backoff to a
+  maximum of 10 attempts
+- **Auto-disable**: a webhook whose cumulative error count exceeds 25 is
+  disabled; the counter resets on each success
+- **Signing**: base64-encoded HMAC of the raw request body in an
+  `X-CompanyCam-Signature` header, keyed on the subscription's `token`
+
+Two things follow, and neither is "they have not done this."
+
+**First, the real differentiator is what the events carry, not that they
+exist.** Every one of their 17 events is CRUD on a photo, a project, a
+document, or a comment. There is no state-transition event because there is
+no state machine — `Project.status` is `active | deleted`. A subscriber can
+learn that a photo was uploaded; it cannot learn that a job was dispatched,
+that a compliance document expired, or that a payout period closed, because
+those objects do not exist. Worksie's `WorkOrderEvent` stream is a
+work-state feed. Theirs is a media feed. That distinction is the argument,
+and it survives their maturity.
+
+**Second, their signing algorithm is SHA-1.** This spec proposes HMAC-SHA256
+below; that is a deliberate improvement, not an oversight, and it is worth
+saying so when the comparison comes up.
 
 Their `ProjectIntegration` object (`{type: "JobNimbus", relation_id: "123"}`)
-shows the strategic position this buys them — and its limit: their Project
-carries a foreign key *into someone else's job object*, because the canonical
-job lives in the other system.
-
-Worksie owns the work order. Emitting events from a system of record is a
-different and stronger position than syncing into one.
+still shows the strategic limit: their Project carries a foreign key *into
+someone else's job object*, because the canonical job lives in the other
+system. Worksie owns the work order. Emitting events from a system of record
+is a different and stronger position than emitting them from a satellite.
 
 See `docs/reviews/competitor-companycam-engineering.md` §4 and §5b.
 
