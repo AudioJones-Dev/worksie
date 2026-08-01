@@ -91,14 +91,55 @@ See `docs/reviews/competitor-companycam-engineering.md` §4 (verified event cata
 ### `WebhookSubscription`
 
 - `id`, `tenant_id`
-- `url`
+- `url` — **constrained; see below**
 - `scopes` — array of event selectors, e.g. `work_order.dispatched`,
   `work_order.*`
-- `signing_secret` — HMAC key for the request-body signature
+- `signing_secret_ref` — **a reference, never the key itself**
 - `enabled`
 - `created_at`, `updated_at`
 
-Tenant-scoped like every other row (Hard Rule #1). RLS applies unchanged.
+Tenant-scoped like every other row (Hard Rule #1), but **RLS alone is not
+sufficient here** — see both constraints below.
+
+#### The signing key must not be tenant-readable
+
+An earlier draft of this document put a `signing_secret` column on this table
+and said "RLS applies unchanged." That was wrong and would have defeated the
+signature it exists to provide.
+
+Tenant RLS grants tenant *members* read access. A member who can read the HMAC
+key can forge a signed delivery — to their own endpoint, and to any other
+endpoint that trusts the same key. The signature would then prove nothing.
+
+Requirements:
+
+- The key lives in a **server-only secret store**, or encrypted with a key the
+  tenant role cannot reach. The table holds a reference, not the material.
+- **No RLS policy grants any tenant role read access to the key.** Only the
+  delivery worker resolves it.
+- The key is shown to the operator **once, at creation**, and is not readable
+  afterwards — rotation issues a new one rather than revealing the old.
+- Rotation and revocation are defined operations, with an overlap window so a
+  subscriber can adopt the new key before the old stops signing.
+
+#### Destination URLs must be constrained
+
+`url` is tenant-controlled and the delivery worker makes server-side HTTP
+requests from inside our network. Unconstrained, that is a straightforward
+SSRF path into internal services and the cloud metadata endpoint.
+
+Requirements, all enforced at delivery time and not only at registration:
+
+- **HTTPS only.** No `http:`, no non-HTTP schemes.
+- **Resolve then check.** Reject RFC 1918 ranges, loopback, link-local
+  (including `169.254.169.254`), unique-local IPv6, and `.internal`-style
+  names. Checking the hostname before resolution is not enough.
+- **Re-check after DNS resolution and on every redirect**, or disable
+  redirects entirely. A name that resolved publicly at registration can
+  resolve privately later — that is DNS rebinding, and it is the reason
+  registration-time validation alone fails.
+- Connect and total-request timeouts, and a response-size cap. The worker
+  reads only the status code.
 
 ### `WebhookDelivery`
 
@@ -121,9 +162,35 @@ so delivery history is queryable when a tenant asks "did you send it?"
   protection in reverse.
 - **Ordered per work order, not globally.** Global ordering across tenants is
   not worth the coordination cost.
-- **Replay.** Because `work_order_events` is append-only and permanent, a
-  subscriber that was down can be replayed from any point. This is a property
-  the existing schema already provides for free.
+- **Replay** from an explicit cursor, for a subscriber that was down.
+
+> **Neither ordering nor replay is free today, and an earlier draft claimed
+> both were.** `work_order_events` being append-only makes them *achievable*;
+> it does not make them true. Two gaps:
+>
+> - **`at` is a timestamp, and timestamps tie.** Two events written in the same
+>   transaction or the same clock tick have no defined order. Append-only
+>   guarantees rows are never destroyed; it guarantees nothing about sequence.
+> - **Retries reorder delivery.** Attempt 3 of event *N* can easily land after
+>   attempt 1 of event *N+1*. Ordered *storage* is not ordered *delivery*.
+>
+> What ordering and replay actually require:
+>
+> - A **monotonic per-work-order sequence number** on `work_order_events`,
+>   assigned server-side, that a consumer can use to detect a gap. This is a
+>   schema addition and is **not** in the Phase 3.5 columns.
+> - A **stable event ID inside the signed payload**, so a consumer can
+>   deduplicate under at-least-once delivery without trusting delivery order.
+> - An explicit **replay cursor** on the subscription — last sequence
+>   acknowledged — rather than "replay from any point," which is not a
+>   defined operation.
+> - A **dispatch barrier per work order**: do not deliver *N+1* until *N* has
+>   succeeded or exhausted retries, or accept out-of-order delivery and say so
+>   plainly in the contract. Both are defensible; silently doing the second
+>   while documenting the first is not.
+>
+> Until that lands, the honest claim is: durable, replayable **storage**, with
+> delivery ordering undefined.
 
 ## Open questions
 
