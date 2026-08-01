@@ -12,9 +12,14 @@ the published `openapi.yaml`, the `openapi-spec` issue tracker, and
 
 **Provenance:** reconciled from two independently produced reviews (PR #39 and
 PR #40) that reached the same strategic conclusion by different routes and
-disagreed on two points of fact. Both disagreements are resolved below and
-marked. Every quantitative claim in §1 was re-verified against the GitHub API
-rather than carried over from either source.
+disagreed on several points of fact. PR #39 then supplied per-claim provenance
+for the contested items, which allowed three of four to be verified verbatim
+against `openapi.yaml` and promoted here; the fourth is recorded as contested
+with the evidence on both sides. Every quantitative claim in §1 was re-verified
+against the GitHub API rather than carried over from either source.
+
+Where the two sources conflicted, the resolution and its basis are stated
+inline rather than silently applied.
 
 **Worksie sources of truth:** `docs/WORKSIE_SPINE.md`, `docs/PRD.md`,
 `docs/DOMAIN_MODEL.md`, `docs/WORK_ORDER_LIFECYCLE.md`,
@@ -178,11 +183,20 @@ Their AI is inward-facing.
 `photo.{created, updated, tag_*, description_*}`, `comment.created`,
 `document.{created, updated}`, `video.{created, updated}`, `task.completed`.
 
-> PR #39 additionally reported `todo_list.{created, completed, deleted}` and
-> `resource.*` / `*` wildcards. Those did **not** appear in this review's
-> extraction of the same page and are recorded as **unconfirmed**. The
-> `todo_list` naming, if present, would be a further tell that checklists were
-> retrofitted onto a photo model rather than designed as a work primitive.
+> **One open discrepancy.** PR #39 additionally reported
+> `todo_list.{created, completed, deleted}`, `resource.*`, and a bare `*`
+> wildcard, citing this same live page. Two independent scrapes of
+> `docs/webhooks-1` — one main-content-only, one full-page — return **zero**
+> occurrences of `todo_list` and no wildcard entries; only `task.completed`
+> is present. The discrepancy is unresolved rather than decided: the events
+> may be documented on a different page, or rendered by client-side script
+> that a scrape does not capture. Treat the wildcard and `todo_list` events as
+> **unconfirmed** until someone reads the page in a browser.
+>
+> If `todo_list` is real it is a further tell — internal naming that betrays
+> checklists retrofitted onto a photo model rather than designed as a work
+> primitive. That is worth confirming precisely because it is rhetorically
+> useful, which is also the reason not to assert it early.
 
 **Delivery semantics** — verified: any non-200 response retries with
 exponential backoff to a maximum of **10 attempts**; a webhook whose
@@ -190,10 +204,17 @@ cumulative error count exceeds **25** is disabled, resetting on success;
 bodies are signed with a base64-encoded **HMAC-SHA1** of the raw request body
 in an `X-CompanyCam-Signature` header keyed on the subscription token.
 
-**Pagination** — PR #39 reports offset (`page`/`per_page`) and cursor
-(`after`/`before` with `X-Next-Cursor`, `X-Prev-Cursor`, `X-Has-Next`,
-`X-Has-Prev`), not mixable, plus `modified_since` for incremental sync. Not
-independently re-verified here.
+**Pagination** — verified in `openapi.yaml`. Two schemes that cannot be
+combined: offset (`page` / `per_page`) and cursor (`after` / `before`, sourced
+from `X-Next-Cursor` and `X-Prev-Cursor` headers). The spec is explicit —
+`page` is *"Cannot be used with cursor pagination (after/before params)"* and
+`after` is *"Cannot be used with 'before' or 'page'"*. List endpoints also
+accept `modified_since` (ISO 8601) for incremental sync, and photo listings
+additionally filter on capture time.
+
+That combination — cursor pagination plus `modified_since` — is what makes
+their API usable for incremental sync rather than full re-fetch. Worth copying
+if Worksie ever exposes a read API.
 
 ### What is absent
 
@@ -208,15 +229,28 @@ API surface at all — they are web-app-only and not automatable.
 
 ### Two structural weaknesses worth naming
 
-Reported by PR #39; **not independently re-verified in this pass.**
+Both **verified** in `openapi.yaml`, quoted verbatim.
 
-- **The permission model is two-valued.** `user_role` is `standard` or
-  `restricted`. No role for a subcontractor, back-office user, or customer.
-  Anything sharper is bolted on via project-level `assigned_users`,
-  `collaborators`, and `invitations`.
-- **Document upload is base64 with a 30 MB ceiling** — no resumable or
-  multipart path. On flaky rural LTE, a 25 MB upload failing at 90% starts
-  over.
+- **The permission model is two-valued.** The User schema reads *"Role for the
+  user. Allowed values: standard (default), restricted"*. There is no role for
+  a subcontractor, a back-office user, or a customer. Anything sharper is
+  bolted on via project-level `assigned_users`, `collaborators`, and
+  `invitations`.
+
+  This is the permission-model expression of §5. A product with a real
+  subcontractor relationship needs a role that is neither staff nor public;
+  they have `standard` and `restricted`. Worksie's `MEMBERSHIP_ROLES` —
+  `operator`, `back_office`, `contractor`, `customer` — is four roles enforced
+  at the row level by RLS, not two flags checked in application code.
+- **Document upload is base64 with a 30 MB ceiling.** The Document schema
+  describes the payload as *"Base64 encoded file contents with 30 MB limit"* —
+  no resumable or multipart path. Base64 also inflates the wire payload by
+  roughly a third, so a 30 MB ceiling is nearer 22 MB of actual file. On the
+  flaky rural LTE their users work under, an upload failing at 90% starts over
+  from zero.
+
+  This is the sharpest single contrast with `OFFLINE_FIRST_ARCHITECTURE.md`,
+  which specifies a resumable queue that survives app restart. See §6c.
 
 ## 5. The headline finding
 
@@ -374,9 +408,10 @@ Independent of competition, these are good calls they made:
 | Absence of payout / dispatch / compliance / time / e-sign | **High** | Spec + live docs, both checked |
 | Peripheral-not-system-of-record thesis | **High** | `ProjectIntegration`, two-valued `Project.status`, non-gating checklists |
 | Mobile resource pressure | **Medium-High** | Inferred from three repos, consistent; no first-party statement |
-| `todo_list.*` and wildcard events | **Unconfirmed** | Reported by PR #39; absent from this pass's extraction |
-| Two-valued `user_role`; 30 MB base64 upload cap | **Unconfirmed** | Reported by PR #39; not re-verified here |
-| Pagination and `modified_since` semantics | **Unconfirmed** | Reported by PR #39; not re-verified here |
+| Two-valued `user_role` | **High** | `openapi.yaml` User schema, quoted verbatim |
+| 30 MB base64 document upload ceiling | **High** | `openapi.yaml` Document schema, quoted verbatim |
+| Dual non-mixable pagination + `modified_since` | **High** | `openapi.yaml` list params, quoted verbatim |
+| `todo_list.*` and wildcard events | **Contested** | PR #39 cites the live webhooks page; two scrapes of that page (main-content and full) return zero occurrences. Unresolved — read it in a browser |
 | Full checklist/task schema properties | **Not obtained** | `components/schemas` truncated on fetch |
 
 ## 10. Sources
@@ -410,6 +445,7 @@ focus: engineering surface (public repos + API spec + live docs)
 cadence: quarterly
 watch: openapi.yaml diff, openapi-spec issue tracker, docs.companycam.com
        webhook event catalogue, atlas/bundle activity, background-agents pace
-unverified-carry-forward: todo_list.* events, user_role cardinality,
-       document upload ceiling, pagination semantics
+unverified-carry-forward: todo_list.* and wildcard webhook events — read
+       docs/webhooks-1 in a browser rather than by scrape; two scrapes
+       disagree with PR #39's report and the question is unresolved
 ```
