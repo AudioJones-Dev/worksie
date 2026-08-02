@@ -94,7 +94,10 @@ Photos and signatures are the bandwidth-heavy artifacts. The flow:
    (SHA-256) over the bytes.
 2. Mobile inserts `ProofOfWorkArtifact` row in local SQLite with
    `local_file_uri` and `content_hash` set, `file_id` null, and
-   `processing_status = pending`.
+   `processing_status = pending`. **The schema must permit `file_id = null`** —
+   the row deliberately precedes its bytes, and a `NOT NULL` constraint would
+   make offline capture impossible. `file_id` is non-null exactly when
+   `processing_status = stored`.
 3. PowerSync replicates the row up. Server sees a row referencing a file
    that isn't in Storage yet — fine.
 4. A background upload worker on mobile pushes bytes to Supabase Storage
@@ -108,25 +111,27 @@ Photos and signatures are the bandwidth-heavy artifacts. The flow:
 stage had to be inferred from which of `file_id` / `local_file_uri` happened to
 be null, which cannot distinguish "not started" from "failed".
 
-`content_hash` identifies *bytes*. It does **not** by itself make retry
-idempotent, and these are two separate problems that need two separate
-mechanisms:
+`content_hash` is what makes retry **idempotent**: a worker that dies
+mid-upload and restarts can recognise bytes already in Storage instead of
+re-uploading them. It is indexed but deliberately **not unique** — the same
+photo may legitimately attach to two work orders.
 
-**Upload idempotency — a deterministic Storage object key.** If the worker
-uploads an object and dies before recording `file_id`, a non-unique hash cannot
-tell it which Storage object completed. The object path is therefore derived,
-not random: `tenant_id / work_order_id / artifact_id`. `artifact_id` is the
-client-generated UUID that already exists on the local row before the first
-upload attempt, so every retry of the same artifact targets the same key and an
-overwrite is a no-op rather than a duplicate. The worker recovers by heading
-that key, not by searching on hash.
+**Upload idempotency and artifact-row duplication are different problems**, and
+an earlier draft ran them together by saying the server "rejects a duplicate
+write" while also declaring `content_hash` non-unique. Both cannot be true of
+the same rule. What actually holds:
 
-**Duplicate-artifact prevention — not attempted, deliberately.**
-`content_hash` is indexed and **not unique**: the same photo legitimately
-attaches to two work orders, and a re-shoot of the same static subject can hash
-identically without being a mistake. Identical bytes are a signal for the back
-office, not an error for the field. Any dedup is a read-time query, never a
-write-time constraint.
+- **Upload idempotency** is keyed on `(tenant_id, artifact_id, content_hash)`.
+  It answers "have *these bytes, for this row* already been stored?", which is
+  what makes a resumed or retried upload safe. Enforced by the upload worker
+  and the Storage write path — not by a table constraint.
+- **Duplicate artifact rows are legitimate** and are not rejected. The same
+  photo attached to two work orders, or to two steps of one, is a real case.
+  This is why `content_hash` is indexed rather than unique.
+- The only duplicate worth catching is a **repeated Storage write for an
+  `artifact_id` already `stored`**. That is a no-op, and the worker should
+  treat it as success, so a retry after a lost acknowledgement converges
+  instead of failing.
 
 ## Authority Rules
 

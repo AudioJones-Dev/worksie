@@ -47,30 +47,29 @@ Polymorphic, `tenant_id`-scoped:
 - `Tag` — `id`, `tenant_id`, `name`, `created_at`, `updated_at`; unique on
   `(tenant_id, name)`.
 - `Taggable` — `tag_id`, `tenant_id`, `taggable_type`, `taggable_id`.
+  - `FOREIGN KEY (tenant_id, tag_id) REFERENCES tags (tenant_id, id)`
+  - `UNIQUE (tenant_id, tag_id, taggable_type, taggable_id)`
 
 Applying to artifacts requires the `unique (tenant_id, id)` that landed on
 `proof_of_work_artifacts` in Phase 3.5.
 
-Polymorphic FKs cannot be enforced by a single composite constraint, so this is
-the one place the design does not get Hard Rule #1 for free. The constraints
-have to be stated rather than assumed:
+**The two sides of this row have different enforceability, and earlier drafts
+of this spec conflated them.**
 
-- **`Taggable` carries `tenant_id`** and it must equal both the tag's tenant
-  and the target row's tenant. A composite FK `(tenant_id, tag_id)` →
-  `tags (tenant_id, id)` pins the tag side declaratively.
-- **The target side needs per-type enforcement.** Either one nullable column
-  and composite FK per taggable type — verbose but fully declarative — or a
-  `BEFORE INSERT OR UPDATE` trigger that resolves `taggable_type` to its table
-  and asserts the tenant matches. Prefer per-type columns while the set is
-  small; a trigger is a validation the database cannot prove.
-- **`unique (tenant_id, tag_id, taggable_type, taggable_id)`** so the same tag
-  cannot be applied twice to one row. Without it a double-tap in the UI
-  produces two rows and every count is wrong.
-- **Index `(tenant_id, taggable_type, taggable_id)`** for "tags on this row"
-  and `(tenant_id, tag_id)` for "rows with this tag" — the back-office query
-  that motivates the feature runs in the second direction.
-- Deleting a tag cascades to its `Taggable` rows. Deleting a tagged row
-  cascades likewise; a dangling tag application is not a state worth keeping.
+The **tag side is not polymorphic** and gets Hard Rule #1 from the database for
+free: the composite FK above makes it structurally impossible to attach a tag
+belonging to one tenant to a row in another. That constraint should be written,
+not deferred.
+
+The **taggable side is polymorphic**, and that is the half a single composite
+constraint cannot express. Tenant pinning there has to be asserted per-type,
+via either per-type FKs or a trigger. Note it in the ontology-review PR — it is
+the one place this design does not get Hard Rule #1 for free.
+
+The uniqueness constraint is separate from tenant pinning and does its own job:
+without it the same tag can be applied to the same row repeatedly, which turns
+every "show me everything tagged X" query into a `DISTINCT` and lets a
+double-tap in the field silently inflate counts.
 
 ### Competitive note
 
@@ -99,11 +98,11 @@ record is evidence.
 
 ### Proposed shape
 
-- `ReportTemplate` — `id`, `tenant_id`, `name`, `version`, layout definition,
-  branding, `created_at`. Unique on `(tenant_id, name, version)`.
-- `GeneratedReport` — `id`, `tenant_id`, `work_order_id`,
-  `report_template_id`, `report_template_version`, `file_id`, `content_hash`,
-  `generated_at`, `generated_by`.
+- `ReportTemplate` — `id`, `tenant_id`, `name`, layout definition, branding,
+  `revision` (monotonic), `created_at`, `updated_at`.
+- `GeneratedReport` — `id`, `tenant_id`, `work_order_id`, `report_template_id`,
+  `template_revision`, `file_id`, `content_hash`, `generated_at`,
+  `generated_by`.
 
 **Templates are versioned and a generated report pins the version it used.**
 A report is evidence, and evidence has to stay explicable: "why does this
@@ -119,6 +118,28 @@ version; existing `GeneratedReport` rows keep pointing at the old one.
 A generated report gets a `content_hash` for the same reason artifacts do: it
 is durable evidence, and a hash is what lets anyone prove the PDF they hold is
 the one that was generated.
+
+**A report must remain reproducible after its template changes.** A bare
+`report_template_id` does not achieve that: rebranding or relaying out a
+template silently changes what regenerating an old report produces, so the
+stored `content_hash` no longer matches anything reproducible and the report
+stops being evidence. `GeneratedReport` therefore pins the exact
+`template_revision` it was rendered from, and template revisions are immutable
+once referenced — an edit creates a new revision rather than mutating the one
+in use. (Embedding a full template snapshot per report is the alternative;
+immutable revisions are cheaper and give the same guarantee.)
+
+This mirrors `work_orders.service_snapshot_json` (Hard Rule #2): the rule set
+in force when the record was created is frozen with the record, so later
+configuration changes cannot rewrite the past.
+
+**Lifecycle convention.** `ReportTemplate` follows the standard
+`created_at` / `updated_at` convention in `DOMAIN_MODEL.md`. `GeneratedReport`
+is **append-only** and deliberately carries no `updated_at`: a rendered record
+is evidence, and evidence that can be edited in place is not evidence. It is
+superseded by generating a new report, never mutated. This is an explicit
+exception to the convention, stated here so the ontology-review PR can accept
+or reject it rather than infer it from an omission.
 
 ### Composition
 
