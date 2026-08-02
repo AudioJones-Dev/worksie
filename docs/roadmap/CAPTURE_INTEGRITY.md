@@ -10,20 +10,18 @@
 > scenario decision (`WORKSIE_GTM_PROJECT_PLAN.md` backlog #5, a Hold
 > Gate).
 >
-> **Migration status, corrected.** An earlier draft said any item here could be
-> built "without a further schema migration." That is false. What Phase 3.5
-> actually did was remove the *blocking* schema work, not all of it:
+> **Migration status per item:**
 >
 > | Item | Further migration? |
 > |---|---|
-> | Audio proof-of-work (§3) | **No** — `audio` is already in the enum |
-> | Capture-location verification (§1) | **No** if the deviation is derived at read time; **yes** if it is stored on the artifact |
+> | Audio proof-of-work (§3) | **No** — `audio` is in the enum |
+> | Capture-location verification (§1) | **No** if the deviation is derived at read time; **yes** if stored on the artifact |
 > | Annotations (§2) | **Yes** — needs a new `ProofOfWorkAnnotation` table |
 >
-> The `unique (tenant_id, id)` that landed on `proof_of_work_artifacts` is what
-> makes the annotations table *possible* — before it, nothing could reference an
-> artifact through a tenant-pinned composite FK. It is a precondition, not a
-> substitute.
+> The Phase 3.5 columns removed the *blocking* schema work, not all of it. The
+> `unique (tenant_id, id)` on `proof_of_work_artifacts` is a precondition for
+> the annotations table — without it nothing can reference an artifact through
+> a tenant-pinned composite FK — not a substitute for it.
 
 ## Purpose
 
@@ -79,8 +77,16 @@ problem. Both defaults can be soft; they are not the same default.
 the expected capture radius. On artifact insert, the server compares
 `proof_of_work_artifacts.gps` against `work_orders.gps`.
 
-**Flag, do not block.** Record the deviation; do not reject the insert or block
-the state transition.
+**Evaluated only when all three inputs are present.** `geofence_radius_m` is
+nullable, `work_orders.gps` may be unset, and artifact `gps` is routinely null.
+If any of the three is missing the result is **`unknown`**, not a deviation. A
+missing input is indistinguishable from a revoked location permission, and
+recording it as a deviation would flag honest work as suspect — the exact
+failure this section exists to avoid. `unknown` and `within_radius` are both
+non-deviations; only an evaluated comparison exceeding the radius is one.
+
+**Flag, do not block.** Where a deviation *is* evaluated, record it; do not
+reject the insert or block the state transition.
 
 Rationale: GPS fails routinely and legitimately in the field — inside metal
 buildings, in basements, under dense canopy, on a device with location
@@ -97,8 +103,8 @@ schema change.
 - Where does the flag live? A column on the artifact, or a derived view? A
   column is simpler; a view avoids storing a judgement that the radius config
   can retroactively change.
-- Should a null `gps` be treated as a deviation, or as "unknown"? Recommend
-  **unknown** — indistinguishable from a permissions problem.
+- ~~Should a null `gps` be treated as a deviation, or as "unknown"?~~
+  **Decided: `unknown`**, generalised to all three inputs. Specified above.
 - Should `geofence_radius_m` default from the `ServiceDefinition`? A roofing
   job and a multi-building campus have very different reasonable radii.
 - Does a flagged artifact still satisfy a `requires_photo` checklist step?
@@ -109,16 +115,30 @@ schema change.
 Markup on an artifact: draw, arrow, text, measurement callout.
 
 Depends on the `unique (tenant_id, id)` that landed on
-`proof_of_work_artifacts` in Phase 3.5 — an annotation child needs a
-tenant-pinned composite FK to its parent artifact, and before that constraint
-existed nothing could reference an artifact at all.
+`proof_of_work_artifacts` in Phase 3.5. To be precise about what that bought:
+a single-column reference to the artifact's primary key was always possible.
+What was not possible was a **tenant-pinned composite FK** —
+`(tenant_id, artifact_id)` referencing `(tenant_id, id)` — which is what makes
+it structurally impossible for one tenant's annotation to attach to another
+tenant's artifact. Every other tenant-scoped parent already carried that
+constraint; this table was the omission.
 
-Proposed shape: `ProofOfWorkAnnotation` with `artifact_id`, `tenant_id`,
-author, `created_at`, and a geometry/style payload. Annotations are **additive
-overlays** — the stored file bytes are never modified, so `content_hash` stays
-valid and the original evidence remains unaltered. That matters for a
-proof-of-work system: an annotation is commentary on evidence, not a
-replacement for it.
+Proposed shape: `ProofOfWorkAnnotation` with
+
+- `id` — stable primary key. Required for citation, for deduplicating retried
+  offline inserts, and for audit. Without its own identity an annotation cannot
+  be referenced, and the upload queue cannot tell a retry from a new one.
+- `tenant_id`, `artifact_id` — with the composite FK above
+- author, `created_at`
+- a geometry/style payload
+
+Annotations are **additive overlays** — the stored file bytes are never
+modified, so `content_hash` stays valid and the original evidence remains
+unaltered. They are also **append-only**: never edited or replaced in place, a
+correction is a new annotation, and removal is a soft delete. That matters for
+a proof-of-work system: an annotation is commentary on evidence, not a
+replacement for it, and commentary that can be silently rewritten afterwards
+carries no more weight than editable evidence would.
 
 CompanyCam markets annotations but exposes no annotation object in their
 public API, so their integration partners cannot reach them programmatically.

@@ -78,18 +78,24 @@ public org: **18 repos, 7 archived, 10 forks.**
 `dependaboat`. Three of those six (`ghx`, `dependaboat`, and arguably
 `openapi-spec`) are internal plumbing rather than product.
 
-> **Reconciliation note — fork count.** PR #39 reported 9 forks; the API
-> reports **10**. `atlas` was the one omitted. PR #40's count of 10 was
-> correct.
-
+> **Reconciliation note — fork count.** PR #39's prose reported 9 forks; the
+> API reports **10**, and PR #40's count of 10 was correct. The cause was not
+> a missing repo: `atlas` was present in PR #39's own table as a fork of
+> `expo/atlas`, and its table listed all 10. Only the sentence summarising the
+> table was miscounted. Recorded precisely because the two failures have
+> different implications — a missing repo would mean the census needed
+> re-verifying, an arithmetic slip means only the sentence did.
+>
 > **Reconciliation note — dates.** PR #40 quoted last-commit dates from each
 > repo's default branch; the table above uses `pushed_at`, which reflects a
 > push to *any* branch and is the more defensible figure. They differ
 > materially in one case: `companycam-vibe-check` last committed to its
 > default branch in Jan 2025 but was pushed to in Mar 2026.
 
-Four of the archived RN forks cluster in Dec 2022 and one in Nov 2020 — a
-bulk-vendoring event followed by abandonment, not maintained code.
+Three of the archived React Native forks cluster in Dec 2022 and one in Nov
+2020 — a bulk-vendoring event followed by abandonment, not maintained code.
+(`companycam-dotnet` was archived the same week but is neither React Native nor
+a fork.)
 
 ## 2. Inferred stack
 
@@ -97,7 +103,7 @@ Nothing here is guesswork beyond what the dependency graphs state outright.
 
 | Layer | Evidence | Conclusion |
 |---|---|---|
-| Backend | 8 Ruby repos, no Go/Elixir/Java service code | **Ruby on Rails** monolith |
+| Backend | 8 Ruby repos; `attr_encrypted` + `fancy-count` target ActiveRecord, `hellosign-ruby-sdk` handles `ActionDispatch::Http::UploadedFile` | **Ruby on Rails.** Service topology is *not* evidenced — see note |
 | Internal API | `graphql-searchkick` adapts Searchkick into `GraphQL::Pagination::Connections` | **GraphQL** |
 | Public API | `openapi.yaml` + live docs | **REST v2** at `api.companycam.com/v2` |
 | Search | Searchkick, ships a Compose file with Elasticsearch | **Elasticsearch**, with `coordinates: {near, within}` geo queries |
@@ -106,17 +112,25 @@ Nothing here is guesswork beyond what the dependency graphs state outright.
 | E-sign | `hellosign-ruby-sdk` | HelloSign, upstream now redirects to Dropbox Sign |
 | PII | `attr_encrypted` | Column-level encryption (archived fork) |
 | Counters | `fancy-count` with a Redis adapter | Rails `counter_cache` replaced at scale |
-| Mobile | RN native-module forks + `atlas` | **React Native.** See the note below |
+| Mobile | RN forks + `atlas` | **React Native**, bare rather than Expo-managed. See the note below |
 | Telemetry | `companycam-vibe-check` | First-party hardware instrumentation |
 
 > **Reconciliation note — Expo.** PR #40 read the `expo/atlas` fork as
 > evidence they are "on / moving to Expo." That was an overreach and is
 > **withdrawn.** Atlas is a Metro bundle visualiser and works with bare React
 > Native; forking it evidences a bundle-size effort, not a managed-workflow
-> migration. PR #39's reading is the defensible one: every RN fork they carry
-> patches a *native* module (orientation, doc viewer, app rating, image
-> cache), which is the signature of bare RN, because those are exactly the
-> patches Expo's managed workflow removes the need for.
+> migration. PR #39's reading is the defensible one, with its evidence
+> narrowed: **three** of the forks patch a *native* module —
+> `react-native-orientation` (Obj-C / Java), `react-native-doc-viewer`
+> (QuickLook / Android intents), and `react-native-rate`
+> (`SKStoreReviewController` / PlayCore). Those are the signature of bare RN,
+> because they are the patches Expo's managed workflow removes the need for.
+>
+> The claim does **not** extend to every fork. `react-native-calendar-datepicker`
+> is pure JavaScript, `react-native-image-cache-hoc` is a JS higher-order
+> component (its native dependency is `rn-fetch-blob`, not the fork itself),
+> and `atlas` is build tooling. None of those three evidence bare RN either
+> way.
 
 **The interesting one:** H3 + Elasticsearch geo + a `geofence` field on Project
 is serious spatial infrastructure, and almost none of it surfaces in the public
@@ -137,13 +151,19 @@ connection, RAM usage, and thermal state**, normalised across iOS and Android.
 Their README says it exists to find performance bottlenecks and compensate for
 hardware limits.
 
-You do not build thermal-state telemetry unless devices are thermally
-throttling. Read alongside `atlas` (bundle size) and
-`react-native-image-cache-hoc` (still patched in 2026), the picture is
-specific: **continuous camera capture plus large-image upload is burning
-battery, heating phones, and exhausting memory on the mid-range Android
-hardware trades actually carry.** They are instrumenting it, not reporting it
-solved.
+**The following is inference, not observation** — rated Medium-High in §9, and
+stated that way here so the two agree. CompanyCam has made no first-party
+statement about device cost.
+
+Building thermal-state telemetry is a strong signal that thermal behaviour is
+worth measuring. Read alongside `atlas` (bundle size) and
+`react-native-image-cache-hoc` (still patched in 2026), the most economical
+explanation is that **continuous camera capture plus large-image upload
+pressures battery, heat, and memory on the mid-range Android hardware trades
+actually carry.** What is directly observable is narrower: they built the
+instrumentation and have not reported the problem solved. Competing
+explanations — routine performance hygiene, a support-diagnostics need — are
+not excluded by the evidence available.
 
 ### 3b. `atlas` — bundle size is a live problem
 
@@ -186,25 +206,35 @@ Their AI is inward-facing.
 `/videos`, `/tags`, `/checklists` (+ `/templates/checklists`), `/groups`,
 `/webhooks`.
 
-**Webhook events** — read from `docs.companycam.com/docs/webhooks-1`:
-`project.{created, updated, archived, deleted, merged, label_*, contact_*}`,
-`photo.{created, updated, tag_*, description_*}`, `comment.created`,
-`document.{created, updated}`, `video.{created, updated}`, `task.completed`.
+**Webhook events** — read from `companycam.readme.io/docs/webhooks-1.md`
+(the raw endpoint; see the resolution note below):
 
-> **One open discrepancy.** PR #39 additionally reported
-> `todo_list.{created, completed, deleted}`, `resource.*`, and a bare `*`
-> wildcard, citing this same live page. Two independent scrapes of
-> `docs/webhooks-1` — one main-content-only, one full-page — return **zero**
-> occurrences of `todo_list` and no wildcard entries; only `task.completed`
-> is present. The discrepancy is unresolved rather than decided: the events
-> may be documented on a different page, or rendered by client-side script
-> that a scrape does not capture. Treat the wildcard and `todo_list` events as
-> **unconfirmed** until someone reads the page in a browser.
+- Wildcards: `*`, `project.*`, `photo.*`, `comment.*`, `document.*`,
+  `video.*`, `todo_list.*`, `task.*`
+- `project.{created, updated, label_added, contact_created, contact_updated,
+  merged, archived, deleted}`
+- `photo.{created, updated, tag_added, description_updated}`
+- `comment.created` · `document.{created, updated}` · `video.{created, updated}`
+- `todo_list.{created, completed, deleted}` · `task.completed`
+
+> **Resolved — the `todo_list` discrepancy.** This was previously recorded as
+> unresolved: PR #39 reported `todo_list` events and a bare `*` wildcard,
+> while two independent scrapes of the rendered `docs.companycam.com` page
+> returned **zero** occurrences of either. Settled on 2026-08-01 by reading
+> the raw `.md` endpoint, which lists `todo_list.*`, all three `todo_list`
+> events, the bare `*`, and six per-resource wildcards. **PR #39 was right and
+> the scrapes were wrong** — `docs.companycam.com` renders client-side, so a
+> fetch of it under-reports. This is the same methodological trap noted in the
+> header, now confirmed twice.
 >
-> If `todo_list` is real it is a further tell — internal naming that betrays
+> One correction in the other direction: **`resource.*` was never a real
+> event.** It was PR #39's shorthand for "a wildcard per resource type," which
+> a later pass carried literally. The actual wildcards are the six named
+> above; no scope literally called `resource.*` exists.
+>
+> `todo_list` being real is a further tell — internal naming that betrays
 > checklists retrofitted onto a photo model rather than designed as a work
-> primitive. That is worth confirming precisely because it is rhetorically
-> useful, which is also the reason not to assert it early.
+> primitive.
 
 **Delivery semantics** — verified: any non-200 response retries with
 exponential backoff to a maximum of **10 attempts**; a webhook whose
@@ -226,7 +256,12 @@ if Worksie ever exposes a read API.
 
 ### What is absent
 
-No endpoint, schema, or webhook event exists for any of:
+Scope note: this is an inventory of the **public Core API v2 surface** —
+the published spec plus the live documentation, both checked. It is evidence
+about what CompanyCam exposes to integrators, not proof about their internal
+data model, and not a prediction about what they may add later.
+
+No endpoint, schema, or webhook event was found for any of:
 
 **time tracking · timesheets · payroll · invoices · estimates · payments ·
 scheduling · dispatch · work orders · compliance documents · insurance ·
@@ -267,9 +302,9 @@ flaky rural LTE, an upload failing at 90% starts over.
 
 ### The permission model did not stay thin — it was thinned deliberately
 
-This corrects an inference carried in earlier drafts, which supposed that
-granularity was "bolted on via project-level `assigned_users`,
-`collaborators`, and `invitations`." **The opposite is documented.**
+The obvious reading — that granularity is bolted on through project-level
+`assigned_users`, `collaborators`, and `invitations` — is **the opposite of
+what is documented.**
 
 CompanyCam's [changelog](https://companycam.readme.io/changelog/removing-permissions-for-project-collaborators.md)
 records that `POST /v2/projects/:id/invitations` **formerly accepted four
@@ -332,10 +367,27 @@ there is nowhere to put any of the three. Adding them is not a feature ticket
 for them; it is a re-founding of the object.
 
 This is a coherent strategy — be the best evidence layer, integrate with every
-job system — and a permanent ceiling. They cannot own dispatch, compliance, or
-payout without breaking the partners who *are* the job system.
+job system. It also carries a structural cost that is not a prediction about
+their roadmap but a statement about their current position: owning dispatch,
+compliance, or payout would put them in direct competition with the partners
+who *are* the job system, and would require re-founding objects those partners
+already read. Nothing here says they cannot do it. It says the move is
+expensive for them in a way it is not for a system of record built that way
+from the start.
 
 ## 6. What this means for Worksie
+
+> **Status of everything in §6 and §7: recommendations, not doctrine.** None of
+> it is a stack or scope decision, and none of it binds. `WORKSIE_SPINE.md` is
+> the canonical stack contract; per `docs/AGENTS.md` a review document must not
+> change public positioning, phase gates, or stack decisions on its own. Where
+> a recommendation below names a specific mechanism — HMAC-SHA256 signing,
+> outbound webhooks, PostGIS over H3, e-sign sequencing — treat it as a
+> proposal that requires a spine update before it is a commitment. Roadmap
+> specs referenced here (`OUTBOUND_EVENTS.md`, `CAPTURE_INTEGRITY.md`,
+> `TAGS_AND_REPORTS.md`, `DOCUMENTS_AND_ESIGN.md`) carry their own
+> roadmap-only banners and target phases. Nothing here moves an item out of
+> `PRD.md` §"Explicitly Out of Scope (v1)".
 
 ### 6a. Confirmed — the differentiators sit on empty ground
 
@@ -486,7 +538,7 @@ Independent of competition, these are good calls they made:
 | Collaborator permissions existed and were removed | **High** | [Changelog](https://companycam.readme.io/changelog/removing-permissions-for-project-collaborators.md), read directly 2026-08-01 |
 | Two-valued `user_role`, write-once, absent from read | **High** | [`createuser`](https://companycam.readme.io/reference/createuser.md) + [`updateuser`](https://companycam.readme.io/reference/updateuser.md) + [User object](https://docs.companycam.com/reference/user), all read 2026-08-01 |
 | 30 MB base64 upload cap | **High** | [`createprojectdocument`](https://companycam.readme.io/reference/createprojectdocument.md), quoted verbatim 2026-08-01 |
-| `todo_list.*` and wildcard events | **High** | [Webhooks doc](https://docs.companycam.com/docs/webhooks-1); PR #39's extraction confirmed against live docs |
+| `todo_list.*`, three `todo_list` events, bare `*` and six per-resource wildcards | **High** | [Raw webhooks doc](https://companycam.readme.io/docs/webhooks-1.md), read 2026-08-01. Supersedes two scrapes of the JS-rendered page that returned zero hits. `resource.*` was shorthand, not a real scope |
 | Pagination and `modified_since` semantics | **Spec-derived** | From `openapi.yaml` only; low stakes, not re-verified |
 | Full checklist/task schema properties | **Not obtained** | `components/schemas` truncated on fetch |
 
@@ -525,7 +577,7 @@ Independent of competition, these are good calls they made:
 
 ## 11. Rerun inputs
 
-```
+```yaml
 workflow: firecrawl-competitive-intel
 competitor: CompanyCam
 focus: engineering surface (public repos + API spec + live docs)
