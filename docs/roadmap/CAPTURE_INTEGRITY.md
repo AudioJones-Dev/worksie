@@ -10,20 +10,18 @@
 > scenario decision (`WORKSIE_GTM_PROJECT_PLAN.md` backlog #5, a Hold
 > Gate).
 >
-> **Migration status, corrected.** An earlier draft said any item here could be
-> built "without a further schema migration." That is false. What Phase 3.5
-> actually did was remove the *blocking* schema work, not all of it:
+> **Migration status per item:**
 >
 > | Item | Further migration? |
 > |---|---|
-> | Audio proof-of-work (§3) | **No** — `audio` is already in the enum |
-> | Capture-location verification (§1) | **No** if the deviation is derived at read time; **yes** if it is stored on the artifact |
+> | Audio proof-of-work (§3) | **No** — `audio` is in the enum |
+> | Capture-location verification (§1) | **No** if the deviation is derived at read time; **yes** if stored on the artifact |
 > | Annotations (§2) | **Yes** — needs a new `ProofOfWorkAnnotation` table |
 >
-> The `unique (tenant_id, id)` that landed on `proof_of_work_artifacts` is what
-> makes the annotations table *possible* — before it, nothing could reference an
-> artifact through a tenant-pinned composite FK. It is a precondition, not a
-> substitute.
+> The Phase 3.5 columns removed the *blocking* schema work, not all of it. The
+> `unique (tenant_id, id)` on `proof_of_work_artifacts` is a precondition for
+> the annotations table — without it nothing can reference an artifact through
+> a tenant-pinned composite FK — not a substitute for it.
 
 ## Purpose
 

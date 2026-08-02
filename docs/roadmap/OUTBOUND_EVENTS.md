@@ -103,24 +103,34 @@ sufficient here** — see both constraints below.
 
 #### The signing key must not be tenant-readable
 
-An earlier draft of this document put a `signing_secret` column on this table
-and said "RLS applies unchanged." That was wrong and would have defeated the
-signature it exists to provide.
-
 Tenant RLS grants tenant *members* read access. A member who can read the HMAC
 key can forge a signed delivery — to their own endpoint, and to any other
 endpoint that trusts the same key. The signature would then prove nothing.
 
-Requirements:
-
 - The key lives in a **server-only secret store**, or encrypted with a key the
-  tenant role cannot reach. The table holds a reference, not the material.
+  tenant role cannot reach. The table holds a reference, never the material.
 - **No RLS policy grants any tenant role read access to the key.** Only the
   delivery worker resolves it.
-- The key is shown to the operator **once, at creation**, and is not readable
-  afterwards — rotation issues a new one rather than revealing the old.
-- Rotation and revocation are defined operations, with an overlap window so a
-  subscriber can adopt the new key before the old stops signing.
+- The key is shown to the operator **once, at creation**. Rotation issues a new
+  one rather than revealing the old.
+
+#### Rotation needs two live keys, so model both
+
+An overlap window means two keys are valid at once, which a single reference
+cannot express. Rotation state belongs in its own rows:
+
+`WebhookSigningKey` — `id`, `tenant_id`, `subscription_id`, `secret_ref`,
+`status` ∈ {`active`, `retiring`, `revoked`}, `activated_at`, `retires_at`.
+
+- Exactly one `active` key per subscription; at most one `retiring`.
+- During overlap the delivery carries **two signature headers**, one per key,
+  rather than one ambiguous header. A subscriber that has adopted the new key
+  validates against it; one that has not still validates against the old. A
+  single header would force the subscriber to guess which key signed it.
+- `retires_at` is enforced by the worker, not by convention — a `retiring` key
+  stops signing at that timestamp whether or not the subscriber acted.
+- Revocation is immediate and skips the overlap: it is for compromise, not
+  scheduled rotation.
 
 #### Destination URLs must be constrained
 
@@ -131,15 +141,21 @@ SSRF path into internal services and the cloud metadata endpoint.
 Requirements, all enforced at delivery time and not only at registration:
 
 - **HTTPS only.** No `http:`, no non-HTTP schemes.
-- **Resolve then check.** Reject RFC 1918 ranges, loopback, link-local
-  (including `169.254.169.254`), unique-local IPv6, and `.internal`-style
-  names. Checking the hostname before resolution is not enough.
-- **Re-check after DNS resolution and on every redirect**, or disable
-  redirects entirely. A name that resolved publicly at registration can
-  resolve privately later — that is DNS rebinding, and it is the reason
-  registration-time validation alone fails.
-- Connect and total-request timeouts, and a response-size cap. The worker
-  reads only the status code.
+- **Every resolved address must pass, and the connection must go to a
+  validated address.** Resolve the hostname, check *all* A and AAAA results
+  against the deny policy, then connect to one of the addresses that passed —
+  via a pinned-address dial or a resolver the HTTP client cannot bypass.
+  Validating the name and then letting the client resolve again on connect is
+  the rebinding hole: the second resolution can return a different address.
+- **Deny list, applied to resolved addresses:** RFC 1918, loopback,
+  link-local including `169.254.169.254`, unique-local IPv6 (`fc00::/7`),
+  carrier-grade NAT (`100.64.0.0/10`), reserved, unspecified, multicast, and
+  IPv4-mapped IPv6 (`::ffff:0:0/96`) — the last because it otherwise smuggles
+  a private v4 address past a v6 check.
+- **Redirects get the same treatment or are disabled.** A redirect is a new
+  request to a new host; validating only the original defeats the whole check.
+- Connect and total-request timeouts, and a response-size cap. The worker reads
+  only the status code.
 
 ### `WebhookDelivery`
 
@@ -164,32 +180,39 @@ so delivery history is queryable when a tenant asks "did you send it?"
   not worth the coordination cost.
 - **Replay** from an explicit cursor, for a subscriber that was down.
 
-> **Neither ordering nor replay is free today, and an earlier draft claimed
-> both were.** `work_order_events` being append-only makes them *achievable*;
-> it does not make them true. Two gaps:
+> **Neither ordering nor replay is free.** `work_order_events` being
+> append-only makes them *achievable*, not true. Two gaps:
 >
-> - **`at` is a timestamp, and timestamps tie.** Two events written in the same
->   transaction or the same clock tick have no defined order. Append-only
->   guarantees rows are never destroyed; it guarantees nothing about sequence.
-> - **Retries reorder delivery.** Attempt 3 of event *N* can easily land after
->   attempt 1 of event *N+1*. Ordered *storage* is not ordered *delivery*.
+> - **`at` is a timestamp, and timestamps tie.** Two events in the same
+>   transaction or clock tick have no defined order. Append-only guarantees
+>   rows are never destroyed; it guarantees nothing about sequence.
+> - **Retries reorder delivery.** Attempt 3 of event *N* lands after attempt 1
+>   of *N+1*. Ordered *storage* is not ordered *delivery*.
 >
-> What ordering and replay actually require:
+> What they require:
 >
-> - A **monotonic per-work-order sequence number** on `work_order_events`,
->   assigned server-side, that a consumer can use to detect a gap. This is a
->   schema addition and is **not** in the Phase 3.5 columns.
-> - A **stable event ID inside the signed payload**, so a consumer can
->   deduplicate under at-least-once delivery without trusting delivery order.
-> - An explicit **replay cursor** on the subscription — last sequence
->   acknowledged — rather than "replay from any point," which is not a
->   defined operation.
-> - A **dispatch barrier per work order**: do not deliver *N+1* until *N* has
->   succeeded or exhausted retries, or accept out-of-order delivery and say so
->   plainly in the contract. Both are defensible; silently doing the second
->   while documenting the first is not.
+> - **A monotonic per-work-order sequence** on `work_order_events`, allocated
+>   **inside the same transaction as the state change** and enforced by a
+>   `unique (tenant_id, work_order_id, sequence)` constraint. Assigning it
+>   outside the transaction reintroduces the tie under concurrent transitions.
+>   A schema addition, **not** in the Phase 3.5 columns.
+> - **Gaps are possible and consumers must tolerate them.** A transaction that
+>   allocates a sequence and then rolls back burns the number. A consumer must
+>   treat a gap as "nothing to fetch," not as data loss — otherwise every
+>   rollback looks like an outage.
+> - **A stable event ID in the signed payload**, so a consumer deduplicates
+>   under at-least-once delivery without trusting order.
+> - **A per-work-order acknowledgement watermark**, not one cursor on the
+>   subscription. Each work order has its own sequence, so a single
+>   "last acknowledged" number cannot represent progress across many of them.
+>   Store `(subscription_id, work_order_id) → contiguous watermark`; replay
+>   resumes per work order from its own watermark.
+> - **A dispatch barrier per work order** — do not deliver *N+1* until *N*
+>   succeeds or exhausts retries — **or** accept out-of-order delivery and say
+>   so in the contract. Both are defensible; documenting the first while doing
+>   the second is not.
 >
-> Until that lands, the honest claim is: durable, replayable **storage**, with
+> Until that lands the honest claim is durable, replayable **storage**, with
 > delivery ordering undefined.
 
 ## Open questions

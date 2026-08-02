@@ -78,15 +78,11 @@ public org: **18 repos, 7 archived, 10 forks.**
 `dependaboat`. Three of those six (`ghx`, `dependaboat`, and arguably
 `openapi-spec`) are internal plumbing rather than product.
 
-> **Reconciliation note — fork count.** PR #39 reported 9 forks; the API
-> reports **10**. `atlas` was the one omitted. PR #40's count of 10 was
-> correct.
-
-> **Reconciliation note — dates.** PR #40 quoted last-commit dates from each
-> repo's default branch; the table above uses `pushed_at`, which reflects a
-> push to *any* branch and is the more defensible figure. They differ
-> materially in one case: `companycam-vibe-check` last committed to its
-> default branch in Jan 2025 but was pushed to in Mar 2026.
+> **On the dates.** The column is `pushed_at` — a push to *any* branch — not
+> the last commit on the default branch. The two diverge: `companycam-vibe-check`
+> last committed to its default branch in Jan 2025 but was pushed to in Mar
+> 2026. Use `pushed_at` for "is this alive," and read the default branch
+> directly if you need "what shipped."
 
 Four of the archived RN forks cluster in Dec 2022 and one in Nov 2020 — a
 bulk-vendoring event followed by abandonment, not maintained code.
@@ -97,7 +93,7 @@ Nothing here is guesswork beyond what the dependency graphs state outright.
 
 | Layer | Evidence | Conclusion |
 |---|---|---|
-| Backend | 8 Ruby repos, no Go/Elixir/Java service code | **Ruby on Rails** monolith |
+| Backend | 8 Ruby repos incl. ActiveRecord-dependent gems (`attr_encrypted`, `fancy-count`) | **Ruby**, almost certainly Rails. Nothing public establishes whether it is a monolith or several services |
 | Internal API | `graphql-searchkick` adapts Searchkick into `GraphQL::Pagination::Connections` | **GraphQL** |
 | Public API | `openapi.yaml` + live docs | **REST v2** at `api.companycam.com/v2` |
 | Search | Searchkick, ships a Compose file with Elasticsearch | **Elasticsearch**, with `coordinates: {near, within}` geo queries |
@@ -106,17 +102,23 @@ Nothing here is guesswork beyond what the dependency graphs state outright.
 | E-sign | `hellosign-ruby-sdk` | HelloSign, upstream now redirects to Dropbox Sign |
 | PII | `attr_encrypted` | Column-level encryption (archived fork) |
 | Counters | `fancy-count` with a Redis adapter | Rails `counter_cache` replaced at scale |
-| Mobile | RN native-module forks + `atlas` | **React Native.** See the note below |
+| Mobile | RN forks + `atlas` | **React Native**, bare rather than Expo-managed. See the note below |
 | Telemetry | `companycam-vibe-check` | First-party hardware instrumentation |
 
-> **Reconciliation note — Expo.** PR #40 read the `expo/atlas` fork as
-> evidence they are "on / moving to Expo." That was an overreach and is
-> **withdrawn.** Atlas is a Metro bundle visualiser and works with bare React
-> Native; forking it evidences a bundle-size effort, not a managed-workflow
-> migration. PR #39's reading is the defensible one: every RN fork they carry
-> patches a *native* module (orientation, doc viewer, app rating, image
-> cache), which is the signature of bare RN, because those are exactly the
-> patches Expo's managed workflow removes the need for.
+> **On Expo, and how far the evidence goes.** Three of their five React Native
+> forks patch a **native** module — `react-native-orientation` (Objective-C),
+> `react-native-doc-viewer` (Java), `react-native-rate` (Objective-C). Vendoring
+> native-module patches is characteristic of bare React Native, because Expo's
+> managed workflow supplies those capabilities and removes the need to fork
+> them. The other two — `react-native-calendar-datepicker` and
+> `react-native-image-cache-hoc` — are JavaScript and carry no such signal.
+>
+> The `expo/atlas` fork is **not** evidence of an Expo migration. Atlas is a
+> Metro bundle visualiser and works with bare React Native; forking it
+> indicates a bundle-size effort and nothing about workflow.
+>
+> Net: bare React Native is the better-supported reading, on three native forks
+> rather than on all five.
 
 **The interesting one:** H3 + Elasticsearch geo + a `geofence` field on Project
 is serious spatial infrastructure, and almost none of it surfaces in the public
@@ -267,9 +269,9 @@ flaky rural LTE, an upload failing at 90% starts over.
 
 ### The permission model did not stay thin — it was thinned deliberately
 
-This corrects an inference carried in earlier drafts, which supposed that
-granularity was "bolted on via project-level `assigned_users`,
-`collaborators`, and `invitations`." **The opposite is documented.**
+The obvious reading — that granularity is bolted on through project-level
+`assigned_users`, `collaborators`, and `invitations` — is **the opposite of
+what is documented.**
 
 CompanyCam's [changelog](https://companycam.readme.io/changelog/removing-permissions-for-project-collaborators.md)
 records that `POST /v2/projects/:id/invitations` **formerly accepted four
@@ -336,6 +338,22 @@ job system — and a permanent ceiling. They cannot own dispatch, compliance, or
 payout without breaking the partners who *are* the job system.
 
 ## 6. What this means for Worksie
+
+Read this section against `WORKSIE_SPINE.md`, which governs it on three points:
+
+- **Parity is not the goal.** The spine retires the "outpace CompanyCam"
+  framing explicitly. Nothing below is a recommendation to match a feature
+  because they have it; each item earns its place against Worksie's own
+  doctrine or it does not appear.
+- **Nothing here moves ahead of Phase 3.** Every item is roadmap input. The
+  auth, RLS, and tenancy boundary lands first — `apps/AGENTS.md` forbids domain
+  features before it, and this review does not create an exception.
+- **Sequencing is not decided here.** Priority depends on the pilot-scenario
+  Hold Gate (`WORKSIE_GTM_PROJECT_PLAN.md` backlog #5). "Moves up" below means
+  *relative to the other items in this list*, not "do it next."
+
+Where an item would extend scope rather than sharpen existing doctrine, it is
+marked as such and left for the spine to absorb or reject.
 
 ### 6a. Confirmed — the differentiators sit on empty ground
 
