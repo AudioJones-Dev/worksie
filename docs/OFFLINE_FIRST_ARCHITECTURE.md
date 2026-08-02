@@ -45,9 +45,28 @@ Examples: `WorkOrder`, `WorkOrderLineItem`, `ChecklistInstance`,
 - Mobile writes are scoped: only the assigned contractor can mutate, and
   only specific fields (`status`, `completed_at`, `completed_by`, GPS,
   line-item `quantity`).
-- Conflict rule: **last-writer-wins per field**, with server-side guard
-  that rejects illegal state transitions (see
-  `WORK_ORDER_LIFECYCLE.md`).
+- Conflict rule: **last-writer-wins at row level**, with a server-side guard
+  that rejects illegal state transitions (see `WORK_ORDER_LIFECYCLE.md`).
+- "Last writer" is decided against `updated_at`, maintained by a `BEFORE
+  UPDATE` trigger on every table except `WorkOrderEvent` (append-only, already
+  has `at`). It is set server-side, never by the client, because device clocks
+  are display-only per §Authority Rules — a skewed clock must not be able to
+  win a conflict it should lose.
+
+> **Scope of the guarantee.** `updated_at` is a single row-level marker. It
+> decides *which row write landed last*. It **cannot** merge two clients that
+> edited different fields of the same row — the later write takes the whole
+> row and the earlier client's field is lost.
+>
+> Per-field resolution would require per-field version or timestamp metadata,
+> which the schema does not have.
+>
+> Row-level is the deliberate v1 position. The Class B mobile write surface is
+> narrow — `status`, `completed_at`, `completed_by`, GPS, line-item `quantity`
+> — and two contractors concurrently editing *different* fields of the same
+> work order is not a scenario v1 needs to merge. Revisit if that assumption
+> breaks; the cost is per-field metadata or a CRDT, and neither is worth
+> carrying before the pilot proves the need.
 - Reassignment is a server-side action; mobile cannot change
   `assigned_contractor_membership_id`.
 
@@ -71,15 +90,48 @@ fields, RLS policies, materialized views.
 
 Photos and signatures are the bandwidth-heavy artifacts. The flow:
 
-1. Mobile captures media → writes file to device.
+1. Mobile captures media → writes file to device → computes `content_hash`
+   (SHA-256) over the bytes.
 2. Mobile inserts `ProofOfWorkArtifact` row in local SQLite with
-   `local_file_uri` set and `file_id` null.
+   `local_file_uri` and `content_hash` set, `file_id` null, and
+   `processing_status = pending`. **The schema must permit `file_id = null`** —
+   the row deliberately precedes its bytes, and a `NOT NULL` constraint would
+   make offline capture impossible. `file_id` is non-null exactly when
+   `processing_status = stored`.
 3. PowerSync replicates the row up. Server sees a row referencing a file
    that isn't in Storage yet — fine.
 4. A background upload worker on mobile pushes bytes to Supabase Storage
-   (resumable). On success, it patches the row with `file_id` and clears
-   `local_file_uri`.
-5. Failures retry with backoff. Uploads survive app restart.
+   (resumable), moving `processing_status` to `uploading`. On success it
+   patches the row with `file_id`, clears `local_file_uri`, and sets
+   `processing_status = stored`.
+5. Failures retry with backoff and land on `processing_status = failed` once
+   retries are exhausted. Uploads survive app restart.
+
+`processing_status` is the queue's state column. Before it existed, a row's
+stage had to be inferred from which of `file_id` / `local_file_uri` happened to
+be null, which cannot distinguish "not started" from "failed".
+
+`content_hash` is what makes retry **idempotent**: a worker that dies
+mid-upload and restarts can recognise bytes already in Storage instead of
+re-uploading them. It is indexed but deliberately **not unique** — the same
+photo may legitimately attach to two work orders.
+
+**Upload idempotency and artifact-row duplication are different problems**, and
+an earlier draft ran them together by saying the server "rejects a duplicate
+write" while also declaring `content_hash` non-unique. Both cannot be true of
+the same rule. What actually holds:
+
+- **Upload idempotency** is keyed on `(tenant_id, artifact_id, content_hash)`.
+  It answers "have *these bytes, for this row* already been stored?", which is
+  what makes a resumed or retried upload safe. Enforced by the upload worker
+  and the Storage write path — not by a table constraint.
+- **Duplicate artifact rows are legitimate** and are not rejected. The same
+  photo attached to two work orders, or to two steps of one, is a real case.
+  This is why `content_hash` is indexed rather than unique.
+- The only duplicate worth catching is a **repeated Storage write for an
+  `artifact_id` already `stored`**. That is a no-op, and the worker should
+  treat it as success, so a retry after a lost acknowledgement converges
+  instead of failing.
 
 ## Authority Rules
 
@@ -102,7 +154,8 @@ work the contractor isn't currently allowed to do.
 
 ## Explicitly Not Doing (v1)
 
-- CRDTs. Per-field last-writer-wins on Class B is sufficient.
+- CRDTs. Row-level last-writer-wins on Class B is sufficient, given the narrow
+  write surface described above.
 - Operational transform on free-text fields. Notes are append-only.
 - Peer-to-peer mesh sync between devices.
 - Offline media transcoding.

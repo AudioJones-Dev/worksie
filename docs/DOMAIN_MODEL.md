@@ -15,6 +15,33 @@ config change does not retroactively rewrite history.
 
 ## Entities
 
+### Common columns
+
+**`tenant_id` — every entity except two.** Hard Rule #1 governs tenant-scoped
+rows. Two entities are deliberately outside it:
+
+- **`Tenant`** is the scope itself and cannot carry a reference to one.
+- **`User`** is **global by design** — one login may hold memberships in several
+  tenants, and its tenant associations live entirely on `Membership`. Giving
+  `User` a `tenant_id` would break the multi-tenancy model, not enforce it.
+
+Every *other* entity carries `tenant_id`. The per-entity lists omit it only
+where it is already shown.
+
+**`created_at`** — on every entity.
+
+**`updated_at`** — on every entity except **`Work Order Event`**, which is
+append-only by trigger and already carries `at`; a mutable timestamp there would
+imply an update path that does not exist. Maintained by a `BEFORE UPDATE`
+trigger, server-side, because device clocks are display-only
+(`OFFLINE_FIRST_ARCHITECTURE.md` §Authority Rules).
+
+`updated_at` is a **row-level** change marker. It supports row-level
+last-writer-wins. It does **not** by itself support per-field resolution — that
+needs per-field version or timestamp metadata, which does not exist today. See
+`OFFLINE_FIRST_ARCHITECTURE.md` §Class B for the conflict rule as it actually
+stands.
+
 ### Tenant
 The top-level container. Every row in Worksie belongs to exactly one tenant.
 - `id`
@@ -113,6 +140,8 @@ A concrete instance of a service for a customer.
 - `customer_id`
 - `address`
 - `gps` (lat/lng — populated from site)
+- `geofence_radius_m` (nullable; expected capture radius in metres. Storage
+  only — no behavior reads it yet. See `roadmap/CAPTURE_INTEGRITY.md`.)
 - `scheduled_for`
 - `assigned_contractor_membership_id` (nullable until dispatched)
 - `status` (see `WORK_ORDER_LIFECYCLE.md`)
@@ -155,11 +184,25 @@ Append-only. Survives `cancelled` and `voided`. Never updated or deleted.
 - `tenant_id`
 - `work_order_id`
 - `checklist_step_id` (nullable)
-- `kind` ∈ {`photo`, `video`, `signature`, `pdf`, `note`}
-- `file_id` (Supabase Storage)
+- `kind` ∈ {`photo`, `video`, `audio`, `signature`, `pdf`, `note`}
+- `file_id` (Supabase Storage; **nullable** — the row is created before its
+  bytes exist. Non-null exactly when `processing_status = stored`; null while
+  `pending`, `uploading`, or `failed`. A `NOT NULL` here would make offline
+  capture impossible. See `OFFLINE_FIRST_ARCHITECTURE.md` §File Upload Queue.)
+- `local_file_uri` (nullable; set on device until the upload completes)
+- `content_hash` (nullable; SHA-256 hex of the file bytes. Makes upload retry
+  idempotent and enables dedup. Indexed, **not** unique — the same file may
+  legitimately attach to more than one work order.)
+- `processing_status` ∈ {`pending`, `uploading`, `stored`, `failed`}
+- `body` (nullable; the note text when `kind = note`, an optional caption
+  otherwise)
 - `gps`
 - `captured_at`
 - `captured_by`
+
+Carries a unique `(tenant_id, id)` so future child entities can reference an
+artifact through a tenant-pinned composite foreign key, matching every other
+tenant-scoped parent. A `note` artifact must have `body`.
 
 ### Customer
 Light-touch in v1.

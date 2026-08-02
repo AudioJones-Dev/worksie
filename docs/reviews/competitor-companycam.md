@@ -2,6 +2,14 @@
 
 **Source:** https://companycam.com/features (+ `/advanced-features`)
 **Review date:** 2026-05-22
+**Companion doc:** [`competitor-companycam-engineering.md`](./competitor-companycam-engineering.md)
+— reads their public repos and Core API v2 spec rather than their marketing
+pages. It confirms §4b items 1–2 and identifies two **Worksie opportunities**
+not visible from the marketing surface: capture-location verification against a
+work-order geofence, and outbound webhooks on Worksie's own
+`work_order_events`. Both are gaps in Worksie's roadmap, not CompanyCam
+features — CompanyCam has no work-order object and therefore no work-order
+event surface at all.
 **Worksie sources of truth:** `docs/WORKSIE_SPINE.md`, `docs/PRD.md`,
 `docs/DOMAIN_MODEL.md`, `docs/WORK_ORDER_LIFECYCLE.md`,
 `docs/ONBOARDING_FLOWS.md`, `docs/PAYOUT_RULES.md`,

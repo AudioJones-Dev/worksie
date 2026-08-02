@@ -41,7 +41,10 @@ them.
 3. **Rules drive workflows.** A new service type, a new safety requirement,
    or a new payout rule should be a config change, not a code change.
 4. **Proof-of-work over status.** "Marked complete" is not complete. Photos,
-   signatures, timestamps, GPS, and signed checklists are.
+   signatures, timestamps, GPS, and signed checklists are. Captured evidence
+   must also be *verifiable* — content-hashed, location-stamped, and carrying
+   its own upload state. Phase 3.5 lands those columns; the behavior that reads
+   them is specced in `roadmap/CAPTURE_INTEGRITY.md`.
 5. **Offline-tolerant by default.** Field execution must work without
    connectivity and reconcile cleanly when signal returns.
 6. **Compliance is a first-class object.** W-9, COI, license, insurance,
