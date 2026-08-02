@@ -4,6 +4,7 @@
 
 import { pgEnum } from "drizzle-orm/pg-core";
 import {
+  ARTIFACT_PROCESSING_STATUSES,
   CONTRACTOR_DOCUMENT_STATUSES,
   MEMBERSHIP_ROLES,
   MEMBERSHIP_STATUSES,
@@ -36,4 +37,8 @@ export const payoutPeriodStatusEnum = pgEnum(
 export const proofOfWorkKindEnum = pgEnum(
   "proof_of_work_kind",
   PROOF_OF_WORK_KINDS
+);
+export const artifactProcessingStatusEnum = pgEnum(
+  "artifact_processing_status",
+  ARTIFACT_PROCESSING_STATUSES
 );

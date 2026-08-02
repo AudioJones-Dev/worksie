@@ -63,8 +63,13 @@ export type PayoutRuleMode = (typeof PAYOUT_RULE_MODES)[number];
 export const PAYOUT_PERIOD_STATUSES = ["open", "draft", "approved", "paid"] as const;
 export type PayoutPeriodStatus = (typeof PAYOUT_PERIOD_STATUSES)[number];
 
-export const PROOF_OF_WORK_KINDS = ["photo", "video", "signature", "pdf", "note"] as const;
+export const PROOF_OF_WORK_KINDS = ["photo", "video", "audio", "signature", "pdf", "note"] as const;
 export type ProofOfWorkKind = (typeof PROOF_OF_WORK_KINDS)[number];
+
+// Upload-queue stage for a proof-of-work artifact's bytes.
+// See docs/OFFLINE_FIRST_ARCHITECTURE.md § File Upload Queue.
+export const ARTIFACT_PROCESSING_STATUSES = ["pending", "uploading", "stored", "failed"] as const;
+export type ArtifactProcessingStatus = (typeof ARTIFACT_PROCESSING_STATUSES)[number];
 
 // Sync classes per docs/OFFLINE_FIRST_ARCHITECTURE.md.
 export const SYNC_CLASSES = ["A_reference", "B_assigned", "C_append_only", "D_server_only"] as const;
