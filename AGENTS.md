@@ -124,13 +124,22 @@ path. Surface visual progress in places that render on mobile.
      branch and reference them in the PR body / comment using raw GitHub URLs
      or relative markdown links (`![desktop](docs/screenshots/.../desktop.png)`).
    - Include hover, error, and empty states when relevant to the change.
-3. **Prefer the Vercel preview URL when possible.** Vercel auto-deploys a
-   preview for every PR. Grab the preview URL from the PR's checks (the
-   "Visit Preview" link on the Vercel check) and paste it into the PR
-   description with the exact route to verify
-   (e.g. `https://<branch>-worksie.vercel.app/dashboard`). Confirm the
-   Vercel check is green before declaring the task done. If the preview
-   build failed, fix it — do not ship.
+3. **Prefer a Vercel preview URL when one exists — but verify it does.**
+   As of 2026-07-31 the Vercel integration is **not** producing deployments
+   for this repository. `vercel[bot]` last deployed on 2025-10-16; pull
+   requests since then produce CI runs and no preview. Do not claim a
+   preview URL you have not seen, and do not block on a Vercel check that
+   never appears.
+
+   If previews are reconnected: grab the URL from the "Visit Preview" link
+   on the Vercel check, paste it into the PR description with the exact
+   route to verify (e.g. `https://<branch>-worksie.vercel.app/dashboard`),
+   and confirm the check is green before declaring the task done. If the
+   preview build failed, fix it — do not ship.
+
+   Until then, the CI check `lint / typecheck / build` is the only
+   automated gate, and UI evidence must come from committed screenshots
+   per rule 2.
 4. **Non-UI progress goes in the PR description, not chat-only output.**
    Update the PR body with: what changed, what was tested, trimmed
    command output (pass/fail + key lines), and links to screenshots or the
@@ -148,7 +157,12 @@ Run from the repository root:
 ```bash
 pnpm lint
 pnpm build
+pnpm test
 ```
+
+`pnpm test` runs Vitest via Turbo. Packages with no tests yet declare no `test`
+script and are skipped — do not add a placeholder that always passes, because a
+green step that asserts nothing is worse than a missing one.
 
 If the local `pnpm` shim is unavailable or broken, `npm run lint` and
 `npm run build` are acceptable validation fallbacks because they delegate to

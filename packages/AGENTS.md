@@ -25,7 +25,13 @@ Own shared workspace package contracts for Worksie.
 ## Verification
 
 - Run the touched package's lint/build/typecheck script when available.
-- Root closeout still requires `pnpm lint` and `pnpm build`.
+- Vitest is the test runner. Tests live beside their source as `*.test.ts`
+  under `src/`, so `tsc --noEmit` and `eslint src` cover them too. Import
+  `describe` / `it` / `expect` explicitly rather than enabling globals.
+- `auth/` and `domain/` have suites. The rest have no `test` script and are
+  skipped by `turbo run test`; add one when a package gains real logic rather
+  than shipping a placeholder that always passes.
+- Root closeout requires `pnpm lint`, `pnpm build`, and `pnpm test`.
 
 ## Child DOX Index
 
