@@ -1,7 +1,7 @@
 ---
 title: Worksie - Verified Execution Strategy Memo (Corrected)
 status: draft
-version: v2.0
+version: v2.1
 owner: AJ Digital LLC / Audio Jones
 supersedes: externally produced verified-execution memo v1
 related_review: docs/reviews/WORKSIE_VERIFIED_EXECUTION_REVIEW.md
@@ -49,36 +49,65 @@ answered by Worksie's existing schema. Both halves of that sentence matter.
 
 ## 2. What Worksie actually owns today
 
-Shipped and enforced, not aspirational. Every row here is anchored.
+The repo is at Phase 3. Most of the doctrine exists as **schema plus
+specification**; a much smaller set is **enforced by the database**. The
+distinction is the whole point of this memo, so it is drawn strictly here.
 
-| Asset | What it does | Anchor |
+### 2a. Enforced today
+
+Verified against `supabase/migrations/` and `packages/`.
+
+| Asset | Enforcement | Anchor |
 |---|---|---|
-| Compliance gating | W-9, COI, license, insurance modeled as expirable, gating documents. Expired doc blocks dispatch. | `document_types.gating`, `contractor_documents.{status,expires_on}`; Hard Rule #3 |
-| Versioned safety acks | Pack version bump forces re-acknowledgement before dispatch. | `safety_packs.version`, `safety_acknowledgements` |
-| Service Definition | Required gear, documents, safety steps, checklist template, payout rule per capability. | `service_definitions`; spine doctrine #2 |
-| Frozen rule snapshot | `service_snapshot_json` freezes the rule set at creation; later config edits do not rewrite past jobs. | Hard Rule #2 |
-| Server-gated proof-of-work | Cannot leave `in_progress` until every required-photo step has a photo and every required-signature step has a signature. Mobile proposes; server decides. | Hard Rule #4; `WORK_ORDER_LIFECYCLE.md` |
-| Customer sign-off gate | No `awaiting_signoff → completed` without a `customer_signoffs` row when the snapshot requires it. | Hard Rule #4 |
-| Append-only audit | Every transition writes exactly one `work_order_events` row. Never updated, never deleted, survives `cancelled` and `voided`. | Hard Rule #5 |
-| Reversal-not-edit payout | `payout_lines` append-only inside an approved period. Corrections are new rows, not edits. | Hard Rule #6; `PAYOUT_RULES.md` |
-| Offline as architecture | Four sync classes; server validates transitions against the lifecycle; stale-client transitions rejected with a readable error. | `OFFLINE_FIRST_ARCHITECTURE.md` |
-| Row-level tenancy | Every row carries `tenant_id`; RLS enforced. | Hard Rule #1; PR #23 |
+| Row-level tenancy | `tenant_id` NOT NULL everywhere; composite `(tenant_id, id)` foreign keys make a cross-tenant reference unrepresentable; RLS policies per table | Hard Rule #1; `0001_phase_2_rls_and_audit.sql`, `0002_phase_2_schema_rls_hardening.sql` |
+| Append-only audit | `work_order_events` UPDATE and DELETE raise; FK cascades pass through via `pg_trigger_depth()` | Hard Rule #5; `0001…sql:210-226`, hardened at `0002…sql:586` |
+| Snapshot presence | `work_orders.service_snapshot_json` is NOT NULL, so a work order cannot exist without a frozen rule set | Hard Rule #2 (presence only — see 2b) |
+| Cancellation reasons | `work_order_events.reason` required when `to_state ∈ {cancelled, voided}` | check constraint, `tables.ts` |
+| Tenant context resolution | `resolveTenantContext` + web middleware | Phase 3; `packages/auth/src/tenant.ts`, `apps/web/src/middleware.ts` |
 
-### 2a. The under-recognized asset
+### 2b. Modeled in schema, enforcement not built
+
+These are real entities with real columns. Nothing yet stops the behavior
+they describe. `tables.ts:16-19` says so explicitly: compliance gating,
+lifecycle transitions, and payout append-only are listed as "Rules enforced
+in code (Phase 3+)", and that code does not exist yet — there is no
+transition service anywhere in `apps/` or `packages/`.
+
+| Asset | What exists | What is missing |
+|---|---|---|
+| Compliance gate | `document_types.gating`, `contractor_documents.{status, expires_on}` | Nothing blocks dispatch on an expired or unverified document (Hard Rule #3) |
+| Versioned safety acks | `safety_packs.version`, `safety_acknowledgements` | No re-ack enforcement before dispatch |
+| Service Definition | `service_definitions` with required gear, docs, safety, checklist, payout rule | No evaluation at work-order creation |
+| Proof-of-work gating | Checklist steps with `requires_photo` / `requires_signature`; 10 lifecycle states | No server-side transition guard. Nothing prevents `in_progress → awaiting_signoff` with zero evidence (Hard Rule #4) |
+| Customer sign-off gate | `customer_signoffs` | Same — no transition guard (Hard Rule #4) |
+| Snapshot immutability | `service_snapshot_json` NOT NULL | No UPDATE trigger. The snapshot can be rewritten after creation (Hard Rule #2) |
+| Reversal-not-edit payout | `payout_lines`, `payout_periods` | No append-only trigger; `admin_write` is `FOR ALL`, so an admin can UPDATE or DELETE a payout line in an approved period (Hard Rule #6; `0002…sql:558-567`) |
+| Offline field execution | `OFFLINE_FIRST_ARCHITECTURE.md` design; four sync classes | `apps/mobile` is the Phase 1 scaffold — three files, no PowerSync, SQLite, storage, or upload queue |
+
+### 2c. The under-recognized asset — and its actual state
 
 The three immutability rules — frozen snapshot (#2), append-only events
-(#5), reversal-not-edit payout (#6) — are the most defensible thing Worksie
-has shipped, and the original memo did not mention them.
+(#5), reversal-not-edit payout (#6) — are the most defensible *design* in
+the repo, and the original memo did not mention them at all. That remains
+the right thing to build the verified-execution story on.
 
-They are what makes a **defensible dispute trail** possible: for any past
-job, Worksie can reconstruct what the rules *were* at the time, who
-transitioned it and when, and what was paid against it — with no path for
-anyone to have quietly rewritten history.
+But only **one of the three is enforced**. `work_order_events` genuinely
+cannot be rewritten. The snapshot can be updated after creation, and payout
+lines can be edited or deleted by an admin.
 
-A documentation-first competitor cannot retrofit that cheaply. It is not a
-feature; it is a constraint applied consistently from the first migration.
-Any verified-execution story should be built on this, because it is real
-today.
+So the dispute trail today answers *who transitioned this work order, when,
+and in what order* — and nothing more. It does not yet answer *what the
+rules were at the time* or *what was paid against it*, because both of
+those records are still mutable.
+
+Closing that gap is small, well-understood work: two triggers in the same
+shape as the one that already exists. It is also the highest-leverage
+verified-execution work available, because every later claim in this memo
+depends on the record being tamper-evident. **Do this before any AI layer.**
+
+A documentation-first competitor cannot retrofit tamper-evidence cheaply —
+it is a constraint applied from the first migration, not a feature. Worksie
+has applied it once. It should apply it twice more.
 
 ## 3. What is not built (corrections to memo v1)
 
@@ -88,12 +117,13 @@ The original memo listed these as existing strengths. They are not.
 |---|---|---|
 | Worksie has a worker capability / competency graph | No skill, certification, or competency entity exists. Eligibility is **paperwork only** — gating documents plus safety acks. Skill-based routing and quality scoring are explicitly deferred (`SUBCONTRACTOR_DISPATCH.md` lines 254, 286). | Proposed, Phase 5+ |
 | Requirements vary dynamically by location, customer, funding source, risk | `ServiceDefinition` carries flat lists, frozen per work order. No conditional evaluation exists. | Proposed, depends on the above |
-| AI can verify evidence sufficiency | Today's gate is a **presence** check (a required photo exists), not a sufficiency check. | Proposed, blocked — see §6 |
+| AI can verify evidence sufficiency | There is no completion gate at all yet. The specified gate is a **presence** check (a required photo exists); a sufficiency check is two steps beyond it. | Proposed, blocked — see §6 |
 
-The distinction that matters operationally: Worksie today can answer *"is
-this contractor's COI current?"* It cannot answer *"can this person perform
-an 8-foot VPL install?"* Those are different questions, and the second one
-is where the memo's thesis actually lives.
+The distinction that matters operationally: Worksie today can *record*
+whether a contractor's COI is current. It cannot stop a dispatch when it
+isn't, and it cannot answer *"can this person perform an 8-foot VPL
+install?"* at all. Three different capabilities — record, enforce, evaluate
+— and only the first exists.
 
 Nothing here invalidates the direction. It relocates it from "what we own"
 to "what we would have to build, in this order."
@@ -103,7 +133,7 @@ to "what we would have to build, in this order."
 The relevant S-curve is not digital photography, and not ordinary field
 service SaaS. Both are mature and crowded. The live progression is:
 
-```
+```text
 Digital job records
   → structured mobile field workflows
     → machine-verifiable evidence
@@ -114,10 +144,12 @@ Digital job records
               → automated economic settlement
 ```
 
-Worksie sits at **machine-verifiable evidence**, with the settlement layer
-partially specced (`PAYOUT_RULES.md` shipped as rules; `PAYOUT_AND_MARGIN.md`
-roadmapped). The steps above it — interpretation, dynamic enforcement,
-outcome-based authorization — are unbuilt.
+Worksie has the **schema** for machine-verifiable evidence and the
+enforcement for one part of it (the audit log). Structured mobile field
+workflows are specified but not implemented. Everything above —
+interpretation, dynamic enforcement, outcome-based authorization — is
+unbuilt. The settlement layer exists as rules (`PAYOUT_RULES.md`) with
+margin roadmapped (`PAYOUT_AND_MARGIN.md`).
 
 The path is from:
 
@@ -129,9 +161,10 @@ to:
 > exists, the worker was authorized, safety requirements were satisfied,
 > client sign-off exists, and this completion qualifies for payout.
 
-Worksie currently delivers a strict subset of that: required evidence
-exists, sign-off exists, compliance was green at dispatch. The words doing
-the real work — *appears complete*, *was authorized* — are the unbuilt part.
+Worksie currently delivers none of that sentence automatically. It models
+every clause and enforces none of them: the schema knows what evidence is
+required, and nothing checks that it arrived. The nearest term is the
+frozen snapshot, which records what *should* have been required.
 
 ## 5. Where CompanyCam stops
 
@@ -139,15 +172,17 @@ CompanyCam's center of gravity is capture → organize → communicate →
 report. Even as it adds AI and workflow, its buyer expectation is
 documentation.
 
-The concrete, checkable difference is not "richer domain model" — it is
-**gating**:
+The intended difference is not "richer domain model" — it is **gating**:
 
-> Worksie's required checklist steps gate a server-validated state
-> transition and, downstream, a payout. CompanyCam's checklists gate
-> nothing.
+> Worksie's required checklist steps are designed to gate a server-validated
+> state transition and, downstream, a payout. CompanyCam's checklists gate
+> nothing by design.
 
-That claim is verifiable from `competitor-companycam.md` §2 and Hard Rule
-#4. Prefer it over any argument about what a competitor's architecture
+Note the tense. CompanyCam's non-gating is a product decision; Worksie's
+gating is a specification with no implementation behind it yet (§2b). The
+difference is real at the design level and worth building toward, but it is
+not currently a shipped differentiator and must not be sold as one. Prefer
+this framing over any argument about what a competitor's architecture
 could or could not eventually support — that version is unfalsifiable and
 does not survive contact with a skeptical reader.
 
@@ -277,22 +312,33 @@ first six.
 
 ## 11. The moat stack, with honest state
 
+Three states: **enforced** (the database or shipped code prevents the wrong
+thing), **modeled** (entities and columns exist; nothing enforces them),
+**not built** (no representation at all).
+
 | Layer | What accumulates | State today |
 |---|---|---|
-| Capability | What each business can perform | **Partial** — `ServiceDefinition` as flat requirements; no conditional rules |
-| Worker | Who is qualified and authorized for what | **Not built** — paperwork gating only |
-| Evidence | What valid completion looks like | **Shipped** — required steps, gated server-side |
-| Rules | Conditions controlling execution | **Partial** — compliance and sign-off gates only |
-| Immutability | Frozen snapshots, append-only history | **Shipped** — Hard Rules #2, #5, #6 |
+| Tenancy | Isolation between businesses | **Enforced** — NOT NULL + composite FKs + RLS |
+| Audit | Ordered, tamper-evident transition history | **Enforced** — `work_order_events` blocks UPDATE/DELETE |
+| Capability | What each business can perform | **Modeled** — flat requirements, no evaluation, no conditional rules |
+| Evidence | What valid completion looks like | **Modeled** — required-step flags exist; no transition guard reads them |
+| Rules | Conditions controlling execution | **Modeled** — compliance and sign-off columns; no gate |
+| Immutability of snapshot and payout | Frozen rules, reversal-not-edit money | **Modeled** — NOT NULL only; both records still mutable |
+| Economics | How verified outcomes settle | **Modeled** — payout rules and periods; margin roadmapped |
+| Offline field UX | Real-world execution reliability | **Not built** — mobile is the Phase 1 scaffold |
+| Worker | Who is qualified and authorized for what | **Not built** — no competency representation |
 | Outcome | What happened after execution | **Not built** |
 | Quality | Which evidence predicts defect and rework | **Not built** — depends on tags (§8) |
-| Economics | How verified outcomes settle | **Partial** — payout rules shipped; margin roadmapped |
-| Offline field UX | Real-world execution reliability | **Shipped** as architecture |
 | Vertical packs | Accessibility, tile/bath, and beyond | **Roadmapped** — Phase 8 |
 
-The compounding asset is the product of these, not any single one. Three of
-ten are shipped. That is a real foundation and an honest starting point,
-and it is a different statement from "Worksie already owns the graph."
+The compounding asset is the product of these, not any single one. **Two of
+twelve are enforced; five more are modeled and awaiting enforcement.**
+
+That is a narrower claim than the one this memo made in its first corrected
+draft, which counted modeled layers as shipped. It is still a real
+foundation — a correct ontology with tenancy and audit already locked down
+is a good place to be at Phase 3. It is simply not a moat yet, because
+nothing but the audit log currently resists being overwritten.
 
 ## 12. Sequencing against the actual phase plan
 
@@ -301,12 +347,20 @@ Phases 4–8: lead/opportunity/estimate → e-sign → assignment → margin →
 domain packs. A verified-execution direction has to interleave with that,
 not replace it.
 
+The first two rows are new to this draft. They were invisible while the
+memo mistook specification for enforcement, and they precede everything
+else: an AI verification layer over a record that can be silently edited
+verifies nothing.
+
 | Step | Depends on | Gate |
 |---|---|---|
-| Annotations + tags (§8 items 1–2) | nothing | Schema PR; low doctrine risk |
+| Snapshot + payout-line immutability triggers | nothing | Migration PR. Two triggers shaped like the existing `work_order_events` one. **Do first** |
+| Work-order transition service (Hard Rules #3, #4) | above | The compliance gate and proof-of-work gate the docs already claim. Backend PR |
+| Offline field execution | transition service | The mobile app past scaffold. Largest single piece of unbuilt work |
+| Annotations + tags (§8 items 1–2) | nothing | Schema PR; low doctrine risk, can run in parallel |
 | Worker competency ontology | — | **Ontology PR first.** No schema work before review |
 | Conditional requirements evaluation | competency ontology | Ontology PR |
-| AI evidence-package review (server-side) | tags for cross-job context | Needs override + audit path (§6a) |
+| AI evidence-package review (server-side) | transition service, tags | Needs override + audit path (§6a) |
 | AI capture-time adequacy | on-device inference feasibility | **Blocked** until §6's offline question is scoped |
 | Outcome and quality history | tags, competency | Phase 7+ |
 
@@ -331,9 +385,10 @@ existing doctrine phrase, which is already canonical and already true:
 
 > **Proof-of-work over status.**
 
-It has the advantage of describing something shipped. Any expansion beyond
-it should wait until §11's "not built" rows become "shipped" rows, because
-positioning that outruns the schema is a claim the product cannot honor.
+Even that describes an intent rather than a shipped behavior right now
+(§2b). Any positioning work should wait until §11's modeled rows become
+enforced rows. Positioning that outruns the schema is a claim the product
+cannot honor, and this memo has already made that mistake once.
 
 ## 14. Questions worth answering next
 
@@ -361,19 +416,21 @@ competency ontology.
 |---|---|---|
 | CompanyCam feature parity | Very high dilution | Reject |
 | Generic contractor OS | Very high dilution | Reject |
+| Immutability triggers (snapshot, payout lines) | Low — same shape as an existing trigger | **Do first.** Everything downstream assumes them |
+| Work-order transition service | Medium | Core. The docs already describe it as done; it is not |
+| Offline field execution | High — largest unbuilt piece | Core doctrine, currently a scaffold |
 | Annotations + tags | Low | Build — prerequisites, not detours |
 | Worker competency model | Medium — **new ontology, not an extension** | Core, but budget it honestly |
 | Conditional requirements engine | Medium | Depends on competency model |
-| AI evidence-package review (server-side) | Medium technical | High strategic value |
+| AI evidence-package review (server-side) | Medium technical | High value — but worthless over a mutable record |
 | AI capture-time adequacy | **High — offline constraint unresolved** | Scope feasibility before committing |
-| Proof → payout linkage | Low–medium | Strong differentiator; partially shipped |
+| Proof → payout linkage | Medium | Differentiator; **not** partially shipped — neither end is enforced |
 | Domain packs on existing primitives | Low | Natural expansion |
 | Unrelated trade modules | High | Reject |
 | Outcome / quality intelligence | Medium | Long-term moat; depends on tags |
 
-Two rows changed materially from v1: worker competency moved from "low
-risk" to "medium — new ontology," and capture-time AI moved from "medium"
-to "high, blocked."
+Changed from the first corrected draft: three enforcement rows added at the
+top, and "proof → payout linkage" no longer described as partially shipped.
 
 ## 16. Bottom line
 
@@ -385,12 +442,26 @@ first-class, 1099 payout is a workflow — are more differentiated than
 anything a feature-parity exercise would produce. The work is making those
 primitives deep enough that a competitor would have to redesign around them.
 
-What changed from v1: the memo now distinguishes the three of those that
-are enforced in the schema today from the two that are still design intent,
-and it sequences the gap accordingly.
+But the sequencing point now sits earlier than either the original memo or
+the first corrected draft placed it. Four of those five doctrine lines are
+currently specification: the compliance gate, the proof-of-work gate, the
+capability evaluation, and the payout workflow all exist as schema with no
+enforcement behind them. Deepening them starts with making them true, not
+with adding a layer above them.
+
+The immediate work is three triggers and a transition service — unglamorous,
+small, and load-bearing for every claim in this memo.
 
 ## 17. Change Log
 
+- v2.1 | 2026-08-13 | Enforcement audit against `supabase/migrations/` and
+  `apps/mobile` after PR review. Split §2 into enforced vs. modeled;
+  corrected the immutability claim (only `work_order_events` is enforced —
+  snapshot and payout lines remain mutable); reclassified offline field UX
+  as not built; revised the moat count from "three of ten shipped" to "two
+  of twelve enforced"; added immutability triggers and the transition
+  service as the first sequencing steps; qualified the gating claim in §5 as
+  design-level.
 - v2.0 | 2026-08-13 | Corrected rewrite. Relocated competency modeling,
   conditional rules, and AI sufficiency from "owned" to "proposed";
   surfaced the offline constraint on capture-time verification; restored

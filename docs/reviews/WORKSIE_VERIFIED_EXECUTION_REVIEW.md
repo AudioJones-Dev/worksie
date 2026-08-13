@@ -59,18 +59,20 @@ The memo's contribution is the framing — verified execution as the product
 object, competitor features as negative space — not the decision itself.
 Treat it as a sharper articulation of settled doctrine, not a new finding.
 
-### 2b. "Proof-of-work over status" is the right kernel
+### 2b. "Proof-of-work over status" is the right kernel — as a design
 
-This is the memo's strongest call. It is doctrine #4 in the spine, it is
-enforced at the database level by Hard Rule #4 (`DOMAIN_MODEL.md`), and it
-is the one structural behavior CompanyCam does not have: Worksie's
-required checklist steps **gate** a server-validated state transition and,
-downstream, a payout. CompanyCam checklists gate nothing
-(`competitor-companycam.md` §2).
+This is the memo's strongest call. It is doctrine #4 in the spine, and the
+gating idea is the one structural behavior CompanyCam does not attempt:
+Worksie's required checklist steps are specified to **gate** a
+server-validated state transition and, downstream, a payout. CompanyCam
+checklists gate nothing (`competitor-companycam.md` §2).
 
-That gating claim is the concrete, defensible version of the memo's
-argument, and it should replace the memo's unfalsifiable "CompanyCam's
-architecture cannot reach here" reasoning.
+**Correction (v0.3).** An earlier version of this review said the gate is
+"enforced at the database level by Hard Rule #4." That is false, and the
+error is recorded in §3f below. The gate is specified in
+`WORK_ORDER_LIFECYCLE.md` and `DOMAIN_MODEL.md`, and no code implements it.
+The design remains the right kernel; it is not yet a shipped
+differentiator, and the memo should not present it as one.
 
 ### 2c. The verticalization test is usable as-is
 
@@ -169,22 +171,65 @@ Both pass the memo's own criteria:
 **Resolution:** the earlier review's ranking stands. The memo underrates
 these by grouping them with photo-app features.
 
+### 3f. This review made the same error it was written to catch
+
+Added in v0.3, after PR review surfaced it.
+
+The first version of this review asserted that Hard Rules #1–#6 are
+"enforced at the database level," and treated the immutability substrate as
+a shipped asset. That claim was inherited from `competitor-companycam.md`
+§5 rather than verified against the migrations. Verified now:
+
+| Rule | Claimed | Actual |
+|---|---|---|
+| #1 tenant isolation | Enforced | **Enforced** — NOT NULL, composite `(tenant_id, id)` FKs, RLS |
+| #5 append-only events | Enforced | **Enforced** — UPDATE/DELETE triggers, `0001…sql:210-226` |
+| #2 frozen snapshot | Enforced | **Presence only** — NOT NULL; no UPDATE trigger, so it can be rewritten |
+| #6 payout append-only | Enforced | **Not enforced** — `admin_write` is `FOR ALL`, no trigger (`0002…sql:558-567`) |
+| #3 compliance gate | Enforced | **Not enforced** — `tables.ts:16-19` assigns it to "code (Phase 3+)"; that code does not exist |
+| #4 proof-of-work gate | Enforced | **Not enforced** — no transition service anywhere in `apps/` or `packages/` |
+
+Offline execution is likewise unbuilt: `apps/mobile` is the Phase 1
+scaffold (three files, no PowerSync, SQLite, storage, or upload queue).
+`OFFLINE_FIRST_ARCHITECTURE.md` is a target design.
+
+Two consequences:
+
+1. The corrected memo (v2.1) now separates enforced from modeled, and the
+   sequencing puts the two missing immutability triggers and the transition
+   service ahead of every AI capability. An intelligence layer over a record
+   an admin can silently edit verifies nothing.
+2. **`competitor-companycam.md` §5 needs correcting.** It states that
+   `packages/db/src/schema/tables.ts` "enforces them at the DB level (Hard
+   Rules #1–#6)". That is the origin of this error and it contradicts
+   `tables.ts:16-19`. Fixed in the same change as this review, per the
+   `docs/AGENTS.md` rule to delete stale contradictions rather than explain
+   them.
+
+The general lesson is the one this review already argued for the memo, now
+applied to itself: a doc asserting what is shipped must be checked against
+migrations and application code, not against another doc.
+
 ## 4. What the memo misses
 
-The strongest *shipped* version of its own argument is already in the repo
-and goes unmentioned:
+The strongest version of its own argument is in the repo and goes
+unmentioned — the immutability substrate:
 
-- `service_snapshot_json` freezes the rule set at work order creation
-  (Hard Rule #2)
 - `work_order_events` is append-only and survives `cancelled` / `voided`
-  (Hard Rule #5)
+  (Hard Rule #5) — **enforced**
+- `service_snapshot_json` freezes the rule set at work order creation
+  (Hard Rule #2) — **specified, presence-only in the schema**
 - `payout_lines` use reversal-not-edit semantics inside an approved period
-  (Hard Rule #6)
+  (Hard Rule #6) — **specified, not enforced**
 
-That immutability substrate is exactly what makes the memo's "defensible
-dispute trail" possible. It is real, it is enforced, and it is materially
-harder for a documentation-first competitor to retrofit than any AI
-feature the memo proposes.
+That substrate is what would make the memo's "defensible dispute trail"
+possible, and it is materially harder for a documentation-first competitor
+to retrofit than any AI feature the memo proposes — tamper-evidence is a
+constraint applied from the first migration, not a feature.
+
+One third of it is real today. The remaining two thirds are two triggers in
+the shape of the one that already exists, which makes this both the memo's
+best strategic instinct and its cheapest unbuilt dependency.
 
 ## 5. Governance gates crossed
 
@@ -219,26 +264,42 @@ Any USP change routes through the consolidation checklist, not around it.
    not add a fourth competing definition.
 5. **If verified execution is adopted as direction**, the honest sequencing
    against the existing phase plan is:
+   - snapshot and payout-line immutability triggers — first, and cheap
+     (§3f)
+   - work-order transition service — the compliance and proof-of-work gates
+     the docs already describe as done
+   - offline field execution — the largest unbuilt piece
    - worker competency ontology — ontology PR first, no schema work before
      review
    - conditional requirements evaluation — depends on the above
-   - AI sufficiency checking — blocked on the offline constraint in §3c;
-     scope the on-device question before committing
+   - AI capture-time adequacy — blocked on the offline constraint in §3c;
+     scope the on-device question before committing. Server-side
+     evidence-package review is *not* blocked by that constraint, only by
+     the missing transition service
 6. **No spine or PRD edits from this review.** Same conclusion as
-   `competitor-companycam.md` §6.1.
+   `competitor-companycam.md` §6.1 — with the one exception in §3f, where
+   that document's own enforcement claim is factually wrong and is corrected
+   alongside this review.
 
 ## 7. Outcome
 
-A corrected rewrite of the memo now lives at
-`docs/reviews/WORKSIE_VERIFIED_EXECUTION_MEMO_V2.md`. It applies
-recommendations 2–5 above: proposed capabilities are stated in a
-roadmap register, the two doc conflicts are resolved in favor of existing
-canon, and no competing USP is proposed. Recommendations 1 and 6 stand
-unchanged — the memo remains a strategy input, and no spine or PRD edits
-follow from it.
+A corrected rewrite of the memo lives at
+`docs/reviews/WORKSIE_VERIFIED_EXECUTION_MEMO_V2.md` (v2.1). It applies
+recommendations 2–5: proposed capabilities are stated in a roadmap register,
+the two doc conflicts are resolved in favor of existing canon, no competing
+USP is proposed, and §2 now separates enforced from modeled capabilities.
+Recommendations 1 and 6 stand — the memo remains a strategy input, and no
+spine or PRD edits follow from it.
 
 ## 8. Change Log
 
+- v0.3 | 2026-08-13 | Enforcement audit after PR review. Added §3f: this
+  review inherited an unverified "enforced at the DB level" claim from
+  `competitor-companycam.md` §5. Corrected §2b and §4 accordingly, fixed the
+  source claim in `competitor-companycam.md`, and added the immutability
+  triggers and transition service to the §6 sequencing. Renamed the blocked
+  AI capability to "capture-time adequacy" so the offline constraint does
+  not appear to block server-side review.
 - v0.2 | 2026-08-13 | Recorded the corrected memo as the review's outcome.
 - v0.1 | 2026-08-13 | Initial review of the verified-execution strategy
   memo against repo canon.
