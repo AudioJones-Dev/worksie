@@ -163,9 +163,13 @@ Specifically:
 - `PRD.md` §"Non-Negotiables" — "Field UI must work offline. Required
   documents must be expirable and must gate dispatch. Proof-of-work
   artifacts are bound to a work order and never standalone." — is
-  what produces the differentiated capabilities in §3. The schema in
-  `packages/db/src/schema/tables.ts` enforces them at the DB level
-  (Hard Rules #1–#6).
+  what produces the differentiated capabilities in §3. Those capabilities
+  are **modeled** in `packages/db/src/schema/tables.ts`; only Hard Rules
+  #1 (tenant isolation) and #5 (append-only `work_order_events`) are
+  enforced at the DB level today. Rules #3, #4, and #6 are assigned to
+  application code that does not exist yet (`tables.ts:16-19`), and #2 is
+  enforced as presence (NOT NULL) rather than immutability. See
+  `WORKSIE_VERIFIED_EXECUTION_REVIEW.md` §3f.
 - `DOMAIN_MODEL.md` §"Hard Rules" matches schema and matches PRD.
 
 **One PRD addition worth considering** (not required to ship this

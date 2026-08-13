@@ -9,7 +9,9 @@ Own canonical product, architecture, GTM, phase, and review documentation.
 - `WORKSIE_SPINE.md` is the doctrine and canonical stack contract.
 - `PRD.md`, `DOMAIN_MODEL.md`, and lifecycle docs own product and domain
   requirements.
-- `reviews/` owns PR and readiness review checklists.
+- `reviews/` owns PR reviews, readiness checklists, and competitive or
+  strategy-memo reviews. Review docs record findings only; they never change
+  doctrine, positioning, or phase gates on their own.
 - Root owns repo-wide AGENTS/DOX behavior.
 
 ## Local Contracts
