@@ -1,7 +1,7 @@
 ---
 title: Worksie - Verified Execution Strategy Memo Review
 status: draft
-version: v0.1
+version: v0.2
 owner: AJ Digital LLC / Audio Jones
 created: 2026-08-13
 updated: 2026-08-13
@@ -227,7 +227,18 @@ Any USP change routes through the consolidation checklist, not around it.
 6. **No spine or PRD edits from this review.** Same conclusion as
    `competitor-companycam.md` §6.1.
 
-## 7. Change Log
+## 7. Outcome
 
+A corrected rewrite of the memo now lives at
+`docs/reviews/WORKSIE_VERIFIED_EXECUTION_MEMO_V2.md`. It applies
+recommendations 2–5 above: proposed capabilities are stated in a
+roadmap register, the two doc conflicts are resolved in favor of existing
+canon, and no competing USP is proposed. Recommendations 1 and 6 stand
+unchanged — the memo remains a strategy input, and no spine or PRD edits
+follow from it.
+
+## 8. Change Log
+
+- v0.2 | 2026-08-13 | Recorded the corrected memo as the review's outcome.
 - v0.1 | 2026-08-13 | Initial review of the verified-execution strategy
   memo against repo canon.
