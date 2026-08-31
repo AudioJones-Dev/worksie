@@ -13,12 +13,14 @@ Anchor every UI decision to the product doctrine in
 - Proof-of-work over status.
 - Offline-tolerant by default.
 
-## Visual Tokens (starting point — refine in `packages/ui`)
+## Visual Tokens
+
+Canonical source: `docs/01-SPECIFICATION/DESIGN_TOKENS.md`.
 
 - Primary: `#007BFF`
 - Surface: `#F4F4F4`
 - Ink: `#1C1C1E`
-- Typography: Inter (body), Poppins (headings) — confirm in Phase 1.
+- Typography: Inter (body), Poppins (headings).
 - Tone: professional, clear, trustworthy. No marketing fluff.
 
 ## Tasks
@@ -39,7 +41,8 @@ Anchor every UI decision to the product doctrine in
 
 - Mobile is React Native via Expo. Do not propose web-only layout
   techniques (e.g. CSS grid) for mobile screens.
-- Web is Next.js + Tailwind. Components live in `packages/ui`.
+- Web is Next.js + Tailwind. Components are colocated with their route under
+  `apps/web/src/app/`. There is no shared UI package.
 - **No Firebase Remote Config-driven theming.** Theming is local to the
   app shell in v1; runtime config lives in Postgres.
 

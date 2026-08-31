@@ -37,6 +37,31 @@ and `DOMAIN_MODEL.md` (entities).
    payout period, computes piece-rate or completion-based amounts, and
    emits a payout draft. See `PAYOUT_RULES.md`.
 
+## Approved Pilot Scenario
+
+Phase 4 starts with the **accessibility ramp install workflow**. This is the
+first concrete workflow used to prove the v1 flows without claiming client
+pilot or paid-product readiness.
+
+Pilot flow:
+
+1. Operator configures an accessibility ramp install service definition.
+2. Back office confirms contractor compliance before dispatch.
+3. Back office creates and assigns a tenant-scoped ramp install work order.
+4. Field worker opens the work order on mobile, follows the checklist, and
+   captures required proof.
+5. Customer signs completion on the worker device.
+6. Back office reviews proof and marks the work order payout-draft-ready.
+
+Pilot success criteria:
+
+- Tenant-aware service and work-order read models are visible with fixture
+  data.
+- The mobile work-order surface can represent checklist, proof, and sign-off
+  requirements.
+- Compliance remains a gate before dispatch.
+- Payout remains evidence modeling only; no live payout automation is in scope.
+
 ## Non-Negotiables
 
 - Field UI must work offline.

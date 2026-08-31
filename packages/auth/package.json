@@ -17,8 +17,7 @@
     "clean": "rm -rf dist .turbo node_modules"
   },
   "dependencies": {
-    "@worksie/domain": "workspace:*",
-    "@worksie/types": "workspace:*"
+    "@worksie/domain": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",

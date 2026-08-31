@@ -11,6 +11,9 @@ build/
 .expo-shared/
 *.tsbuildinfo
 
+# Tooling output
+graphify-out/
+
 # Logs
 *.log
 npm-debug.log*

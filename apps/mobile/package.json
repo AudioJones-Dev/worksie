@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@worksie/domain": "workspace:*",
-    "@worksie/types": "workspace:*",
     "expo": "~52.0.11",
     "expo-constants": "~17.0.3",
     "expo-linking": "~7.0.3",

@@ -1,7 +1,7 @@
 ---
 title: Worksie - GTM + Productization Spec
 status: snapshot
-version: v0.1
+version: v0.4
 owner: AJ Digital LLC / Audio Jones
 source: G:\AJ-INTERNAL\AJ-DIGITAL-VAULT\02-PROJECTS\WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md
 source_standard: G:\AJ-INTERNAL\AJ-DIGITAL-VAULT\08-KNOWLEDGE\DOCTRINE\Standards\CANONICAL_GTM_AND_PRODUCTIZATION_STANDARD.md
@@ -15,7 +15,7 @@ monetization_model: Subscription
 monetization_visibility: internal-only
 gtm_motion: Onboarding
 created: 2026-06-01
-updated: 2026-06-01
+updated: 2026-06-27
 ---
 
 # Worksie - GTM + Productization Spec
@@ -86,9 +86,9 @@ directional until client-pilot evidence exists.
 `PRODUCT_READINESS_STAGE = Internal prototype`
 
 Worksie has a mature documentation and schema foundation, including Phase 2
-canonical Drizzle schema and Supabase migrations. The user-facing web and
-mobile surfaces remain scaffold-level, so the current stage should not be
-advanced to client pilot.
+canonical Drizzle schema, Supabase migrations, RLS hardening, and the Phase 3
+tenant/auth boundary. The user-facing web and mobile domain surfaces remain
+scaffold-level, so the current stage should not be advanced to client pilot.
 
 ## 7. Monetization Model
 
@@ -193,6 +193,7 @@ Current-stage evidence:
 - Local repo exists at `C:\dev\worksie` and is aligned with
   `AudioJones-Dev/worksie`.
 - Phase 2 canonical Drizzle schema and Supabase migrations have landed.
+- Phase 3 tenant/auth/RLS boundary has landed.
 - Repo docs define product spine, PRD, domain model, offline architecture,
   onboarding, work-order lifecycle, and payout rules.
 - `pnpm lint` and `pnpm build` passed locally on 2026-06-01, with Node-version
@@ -200,12 +201,11 @@ Current-stage evidence:
 
 Gate to `Client pilot`:
 
-- Phase 3 tenant/auth/RLS boundary completed and reviewed.
 - First domain slice implemented with real web/mobile workflow beyond scaffold.
 - Seed or fixture data supports a realistic install flow.
 - Preview/mobile screenshots exist for relevant UI states if UI changes land.
-- A defined pilot scenario names the client/operator workflow and expected
-  outcome.
+- The approved accessibility ramp install workflow can be completed with
+  fictional or sanitized fixture data.
 
 Gate to `Paid Product`:
 
@@ -228,10 +228,10 @@ Gate to `Paid Product`:
 
 ## 20. Required Assets
 
-- Worksie product roadmap aligned to current Phase 2/Phase 3 state.
-- Phase 3 auth/RLS/tenant boundary review.
-- First domain-slice PR plan.
-- Pilot scenario document.
+- Worksie product roadmap aligned to current Phase 3 state.
+- Phase 4 accessibility-ramp first domain-slice task spec:
+  [`docs/PHASE_4_ACCESSIBILITY_RAMP_TASK_SPEC.md`](PHASE_4_ACCESSIBILITY_RAMP_TASK_SPEC.md)
+- Approved pilot scenario: accessibility ramp install workflow.
 - Demo data/fixtures for accessibility install workflow.
 - UI screenshots in PRs for mobile and desktop changes.
 - Future public positioning page only after readiness gates advance.
@@ -307,19 +307,15 @@ packs, work-order flows, and reporting/payout logic.
   tooling.
 - Merging stale PRs that predate the current doctrine and Phase 2 state.
 - Reintroducing Firebase or legacy architecture.
-- Advancing UI/product claims before auth/RLS/tenancy and first domain slice
-  are real.
+- Advancing UI/product claims before the first domain slice is real.
 - Treating subscription as public positioning before visibility approval.
 
 ## 28. Open Questions
 
-- What is the next scoped Worksie milestone after Phase 2 schema and docs
-  cleanup?
-- Should PR #29 or PR #30 be consolidated into a single accepted positioning
-  addendum?
-- Should PR #31 schema/RLS hardening be reviewed and merged before any Phase 3
-  product slice?
-- Which exact vertical pilot should define the first client-pilot scenario?
+- What is the exact Phase 4 implementation slice for the approved
+  accessibility ramp install workflow?
+- Should a standalone positioning doc be created later, or is the current
+  spine/PRD/GTM spec enough until public claims are approved?
 - What is the approved pricing hypothesis once readiness advances?
 
 ## 29. Agent Dispatch Plan
@@ -341,16 +337,19 @@ The registry remains the source of truth for axis values.
 Use [`docs/WORKSIE_GTM_PROJECT_PLAN.md`](WORKSIE_GTM_PROJECT_PLAN.md) for the
 project-manager sequence, safe gates, hold gates, and GTM backlog.
 
-1. Review open Worksie PRs for stale/conflicting scope before any merge work.
-2. Prepare a narrow Phase 3 readiness brief focused on PR #31 and
-   tenant/auth/RLS implications.
-3. Choose the first pilot scenario or confirm that Worksie stays internal until
-   more implementation lands.
-4. Only after a separate approval gate, create a scoped implementation plan for
-   the first domain slice.
+1. Keep `main` clean and validation green after Sprint -1 consolidation.
+2. Review the Phase 4 task spec for the approved accessibility ramp install
+   workflow.
+3. Only after a separate approval gate, implement the first domain slice.
 
 ## 31. Change Log
 
 - v0.1 | 2026-06-01 | Repo snapshot created from the vault
   GTM/Productization spec using PROJECT_REGISTER entry 11 and Worksie repo
   evidence.
+- v0.2 | 2026-06-27 | Updated repo-local evidence after Sprint -1
+  consolidation and Phase 3 auth/tenant boundary merge.
+- v0.3 | 2026-06-27 | Recorded the accessibility ramp install workflow as
+  the approved first pilot scenario for Phase 4 planning.
+- v0.4 | 2026-06-27 | Linked the draft Phase 4 accessibility ramp task spec
+  and kept runtime implementation behind a separate approval gate.

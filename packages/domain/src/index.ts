@@ -69,3 +69,16 @@ export type ProofOfWorkKind = (typeof PROOF_OF_WORK_KINDS)[number];
 // Sync classes per docs/OFFLINE_FIRST_ARCHITECTURE.md.
 export const SYNC_CLASSES = ["A_reference", "B_assigned", "C_append_only", "D_server_only"] as const;
 export type SyncClass = (typeof SYNC_CLASSES)[number];
+
+export {
+  accessibilityRampInstallFixture,
+  createAccessibilityRampInstallReadModel
+} from "./accessibility-ramp-read-model";
+export type {
+  AccessibilityRampWorkOrderReadModel,
+  RampChecklistStepFixture,
+  RampComplianceRequirement,
+  RampInstallFixture,
+  RampLineItemFixture,
+  RampProofRequirement
+} from "./accessibility-ramp-read-model";

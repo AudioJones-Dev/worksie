@@ -32,17 +32,8 @@ worksie/
 │   ├── domain/                         # Entity names, work-order states, sync classes
 │   │   ├── src/index.ts
 │   │   └── package.json
-│   ├── types/                          # Shared cross-package utility types
-│   │   ├── src/index.ts
-│   │   └── package.json
-│   ├── ui/                             # Design tokens (Phase 1) → primitives (Phase 3+)
-│   │   ├── src/
-│   │   │   ├── index.ts
-│   │   │   └── tokens.ts
-│   │   └── package.json
-│   └── config/                         # Shared eslint / tsconfig presets
+│   └── config/                         # Shared eslint preset
 │       ├── eslint-preset-node.cjs
-│       ├── tsconfig.preset.json
 │       └── package.json
 ├── supabase/
 │   ├── config.toml                     # Supabase CLI local config
