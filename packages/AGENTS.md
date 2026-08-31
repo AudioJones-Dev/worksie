@@ -7,11 +7,13 @@ Own shared workspace package contracts for Worksie.
 ## Ownership
 
 - `auth/` owns shared auth and tenant helpers.
-- `config/` owns shared lint and TypeScript presets.
+- `config/` owns the shared ESLint preset.
 - `db/` owns Drizzle schema and database client.
 - `domain/` owns shared domain constants and state names.
-- `types/` owns shared utility types.
-- `ui/` owns shared design tokens and future primitives.
+
+Worksie does not maintain a shared utility-type package or a shared UI package.
+Brand design tokens are recorded in `docs/01-SPECIFICATION/DESIGN_TOKENS.md`.
+Introducing either package again requires a real second consumer first.
 
 ## Local Contracts
 
@@ -30,5 +32,5 @@ Own shared workspace package contracts for Worksie.
 ## Child DOX Index
 
 - `db/AGENTS.md` - Drizzle schema, database client, and migration ownership.
-- `auth/`, `config/`, `domain/`, `types/`, and `ui/` are currently governed
-  by this `packages/AGENTS.md`.
+- `auth/`, `config/`, and `domain/` are currently governed by this
+  `packages/AGENTS.md`.

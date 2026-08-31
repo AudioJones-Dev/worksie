@@ -2,10 +2,8 @@
   "name": "@worksie/config",
   "version": "0.1.0",
   "private": true,
-  "main": "./index.cjs",
   "files": [
-    "eslint-preset-node.cjs",
-    "tsconfig.preset.json"
+    "eslint-preset-node.cjs"
   ],
   "scripts": {
     "lint": "echo 'no-op: presets only'",

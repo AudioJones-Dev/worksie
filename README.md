@@ -18,9 +18,12 @@ safety, documentation, proof-of-work, and 1099 payout.
 | Doc | What it covers |
 |---|---|
 | [`docs/WORKSIE_SPINE.md`](docs/WORKSIE_SPINE.md) | Product identity, doctrine, canonical stack |
+| [`docs/COMPETITIVE_AUTOMATION_USP_SPEC.md`](docs/COMPETITIVE_AUTOMATION_USP_SPEC.md) | Competitive automation USP and build ladder |
+| [`docs/TIER_4_DOCUMENTATION_STRUCTURE.md`](docs/TIER_4_DOCUMENTATION_STRUCTURE.md) | Canonical layered documentation structure and Worksie adoption map |
 | [`docs/PRD.md`](docs/PRD.md) | Personas, top-level flows, v1 scope |
 | [`docs/DOMAIN_MODEL.md`](docs/DOMAIN_MODEL.md) | Entities, relationships, hard rules |
 | [`docs/PHASE_4_ACCESSIBILITY_RAMP_TASK_SPEC.md`](docs/PHASE_4_ACCESSIBILITY_RAMP_TASK_SPEC.md) | Draft Phase 4 build charter and task spec for the approved ramp install pilot |
+| [`docs/WORKSIE_SEARCH_AND_DISCOVERY_TASK_SPEC.md`](docs/WORKSIE_SEARCH_AND_DISCOVERY_TASK_SPEC.md) | Planning-only P2.3 search/filter contract and architecture escalation gates |
 | [`docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md`](docs/WORKSIE_GTM_AND_PRODUCTIZATION_SPEC.md) | GTM/productization classification and readiness gates |
 | [`docs/WORKSIE_GTM_PROJECT_PLAN.md`](docs/WORKSIE_GTM_PROJECT_PLAN.md) | Project-manager plan, safe gates, hold gates, GTM backlog |
 | [`docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md`](docs/reviews/WORKSIE_GTM_SAFE_GATE_REVIEW.md) | Historical Sprint -1 triage plus current Phase 4 gates |
@@ -61,9 +64,7 @@ worksie/
 │   ├── auth/                # Auth env readers + tenant context helpers
 │   ├── db/                  # Drizzle schema + client
 │   ├── domain/              # Shared entity names, work-order states, sync classes
-│   ├── types/               # Shared utility types
-│   ├── ui/                  # Shared design tokens / primitives (placeholder)
-│   └── config/              # Shared eslint / prettier / tsconfig presets
+│   └── config/              # Shared eslint preset
 ├── scripts/
 │   └── verify-rls/          # Local RLS verification harness
 ├── supabase/
@@ -121,6 +122,8 @@ pnpm --filter @worksie/mobile start # Expo dev server
 ```
 
 The web app exposes `GET /healthz` returning `{ "ok": true, "phase": "3" }`.
+Phase 4B adds a protected fixture-backed automation read view at
+`/work-orders/ramp-install-demo`.
 
 ## Phase Discipline
 
